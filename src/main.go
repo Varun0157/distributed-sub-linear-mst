@@ -41,15 +41,18 @@ func createTree(edges []utils.Edge) ([]*Node, error) {
 	}
 
 	// kind of a reverse level order traversal
+	// build tree from children
+
+	MAX_CHILDREN := 2
 	queue := make([]*Node, len(nodes))
 	copy(queue, nodes)
 
 	for len(queue) > 1 {
 		numNodes := len(queue)
 
-		for start := 0; start < numNodes/2; start++ {
-			children := queue[:2]
-			queue = queue[2:]
+		for start := 0; start < numNodes/MAX_CHILDREN; start++ {
+			children := queue[:MAX_CHILDREN]
+			queue = queue[MAX_CHILDREN:]
 
 			parent := nodeGenerator.CreateNode()
 			parent.SetType(INTERMEDIATE)
@@ -57,13 +60,16 @@ func createTree(edges []utils.Edge) ([]*Node, error) {
 			for _, child := range children {
 				child.SetParent(parent)
 			}
+			queue = append(queue, parent)
 
 			nodes = append(nodes, parent)
-			queue = append(queue, parent)
 		}
 	}
 
-	nodes[len(nodes)-1].SetType(ROOT)
+	if len(nodes) > 0 {
+		root := nodes[len(nodes)-1]
+		root.SetType(ROOT)
+	}
 
 	return nodes, nil
 }
