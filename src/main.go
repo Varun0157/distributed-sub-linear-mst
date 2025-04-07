@@ -6,7 +6,8 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"strconv"
+
+	utils "mst/sublinear/utils"
 )
 
 func listenOnRandomAddr() (lis net.Listener, err error) {
@@ -27,24 +28,38 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
-func run(graphFile string, outFile string, epsilon float64) error {
-	// edges, err := utils.ReadGraph(graphFile)
-	// if err != nil {
-	// 	return err
-	// }
+func run(graphFile string, outFile string) error {
+	log.Printf("graph file: %s", graphFile)
+	log.Printf("out file: %s", outFile)
+
+	edges, err := utils.ReadGraph(graphFile)
+	if err != nil {
+		return err
+	}
+
+	nodeGenerator := NewNodeGenerator()
+	nodes := []*Node{}
+
+	for _, edge := range edges {
+		node := nodeGenerator.CreateNode()
+		node.SetEdges([]utils.Edge{edge})
+		node.SetType(LEAF)
+
+		nodes = append(nodes, node)
+	}
+
+	for _, node := range nodes {
+		log.Printf("node: %v", node)
+	}
 
 	return nil
 }
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Println("usage: go run *.go <infile> <outfile> <epsilon>")
+	if len(os.Args) != 3 {
+		fmt.Println("usage: go run *.go <infile> <outfile>")
 		os.Exit(1)
 	}
 
-	epsilon, err := strconv.ParseFloat(os.Args[3], 64)
-	if err != nil {
-		log.Fatalf("error parsing epsilon: %v", err)
-	}
-	run(os.Args[1], os.Args[2], epsilon)
+	run(os.Args[1], os.Args[2])
 }
