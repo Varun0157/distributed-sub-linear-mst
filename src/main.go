@@ -28,6 +28,46 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
+func createTree(edges []utils.Edge) ([]*Node, error) {
+	nodeGenerator := NewNodeGenerator()
+	nodes := []*Node{}
+
+	for _, edge := range edges {
+		node := nodeGenerator.CreateNode()
+		node.AddEdges([]utils.Edge{edge})
+		node.SetType(LEAF)
+
+		nodes = append(nodes, node)
+	}
+
+	// kind of a reverse level order traversal
+	queue := make([]*Node, len(nodes))
+	copy(queue, nodes)
+
+	for len(queue) > 1 {
+		numNodes := len(queue)
+
+		for start := 0; start < numNodes/2; start++ {
+			children := queue[:2]
+			queue = queue[2:]
+
+			parent := nodeGenerator.CreateNode()
+			parent.SetType(INTERMEDIATE)
+			parent.SetChildren(children)
+			for _, child := range children {
+				child.SetParent(parent)
+			}
+
+			nodes = append(nodes, parent)
+			queue = append(queue, parent)
+		}
+	}
+
+	nodes[len(nodes)-1].SetType(ROOT)
+
+	return nodes, nil
+}
+
 func run(graphFile string, outFile string) error {
 	log.Printf("graph file: %s", graphFile)
 	log.Printf("out file: %s", outFile)
@@ -37,15 +77,9 @@ func run(graphFile string, outFile string) error {
 		return err
 	}
 
-	nodeGenerator := NewNodeGenerator()
-	nodes := []*Node{}
-
-	for _, edge := range edges {
-		node := nodeGenerator.CreateNode()
-		node.SetEdges([]utils.Edge{edge})
-		node.SetType(LEAF)
-
-		nodes = append(nodes, node)
+	nodes, err := createTree(edges)
+	if err != nil {
+		return fmt.Errorf("failed to create tree: %v", err)
 	}
 
 	for _, node := range nodes {
@@ -61,5 +95,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	run(os.Args[1], os.Args[2])
+	err := run(os.Args[1], os.Args[2])
+	if err != nil {
+		log.Fatalf("[ERROR] failed to run: %v", err)
+	}
 }

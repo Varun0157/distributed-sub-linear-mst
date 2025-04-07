@@ -37,15 +37,32 @@ func NewNode(id uint64) *Node {
 }
 
 func (node Node) String() string {
-	return fmt.Sprintf("id: %d, type: %d, edges: %v, parent: %v, children: %v", node.id, node.nodeType, node.edges, node.parent, node.children)
+	childrenData := []uint64{}
+	for _, child := range node.children {
+		if child == nil {
+			log.Println("child is nil")
+		}
+		childrenData = append(childrenData, child.id)
+	}
+
+	parentData := "nil"
+	if parent := node.parent; parent != nil {
+		parentData = fmt.Sprintf("%d", parent.id)
+	}
+
+	return fmt.Sprintf("{id: %d, type: %d, edges: %v, parent: %v, children: %v}", node.id, node.nodeType, node.edges, parentData, childrenData)
 }
 
 func (node *Node) SetType(nodeType NodeType) {
 	node.nodeType = nodeType
 }
 
-func (node *Node) SetEdges(edges []utils.Edge) {
-	node.edges = edges
+func (node *Node) ClearEdges() {
+	node.edges = []utils.Edge{}
+}
+
+func (node *Node) AddEdges(edges []utils.Edge) {
+	node.edges = append(node.edges, edges...)
 }
 
 func (node *Node) SetParent(parent *Node) {
