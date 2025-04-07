@@ -16,8 +16,8 @@ type Edge struct {
 	Weight int
 }
 
-func NewEdge(src, dest, weight int) Edge {
-	return Edge{
+func NewEdge(src, dest, weight int) *Edge {
+	return &Edge{
 		Src:    src,
 		Dest:   dest,
 		Weight: weight,
@@ -49,14 +49,14 @@ func getMaxVertex(edges []Edge) (int, error) {
 	return maxVertex, nil
 }
 
-func ReadGraph(fileName string) ([]Edge, error) {
+func ReadGraph(fileName string) ([]*Edge, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var edges []Edge
+	var edges []*Edge
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())

@@ -28,13 +28,13 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
-func createTree(edges []utils.Edge) ([]*Node, error) {
+func createTree(edges []*utils.Edge) ([]*Node, error) {
 	nodeGenerator := NewNodeGenerator()
 	nodes := []*Node{}
 
 	for _, edge := range edges {
 		node := nodeGenerator.CreateNode()
-		node.AddEdges([]utils.Edge{edge})
+		node.AddEdges([]utils.Edge{*edge})
 		node.SetType(LEAF)
 
 		nodes = append(nodes, node)
@@ -43,16 +43,16 @@ func createTree(edges []utils.Edge) ([]*Node, error) {
 	// kind of a reverse level order traversal
 	// build tree from children
 
-	MAX_CHILDREN := 2
+	NUM_CHILDREN := 2
 	queue := make([]*Node, len(nodes))
 	copy(queue, nodes)
 
 	for len(queue) > 1 {
 		numNodes := len(queue)
 
-		for start := 0; start < numNodes/MAX_CHILDREN; start++ {
-			children := queue[:MAX_CHILDREN]
-			queue = queue[MAX_CHILDREN:]
+		for start := 0; start < numNodes/NUM_CHILDREN; start++ {
+			children := queue[:NUM_CHILDREN]
+			queue = queue[NUM_CHILDREN:]
 
 			parent := nodeGenerator.CreateNode()
 			parent.SetType(INTERMEDIATE)

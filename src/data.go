@@ -21,18 +21,20 @@ type Node struct {
 	id       uint64
 	nodeType NodeType
 
-	edges    []utils.Edge
-	parent   *Node
-	children []*Node
+	edges     []utils.Edge
+	parent    *Node
+	children  []*Node
+	fragments map[int]int
 }
 
 func NewNode(id uint64) *Node {
 	return &Node{
-		id:       id,
-		nodeType: UNKNOWN,
-		edges:    []utils.Edge{},
-		parent:   nil,
-		children: []*Node{},
+		id:        id,
+		nodeType:  UNKNOWN,
+		edges:     []utils.Edge{},
+		parent:    nil,
+		children:  []*Node{},
+		fragments: make(map[int]int),
 	}
 }
 
@@ -50,7 +52,8 @@ func (node Node) String() string {
 		parentData = fmt.Sprintf("%d", parent.id)
 	}
 
-	return fmt.Sprintf("{id: %d, type: %d, edges: %v, parent: %v, children: %v}", node.id, node.nodeType, node.edges, parentData, childrenData)
+	return fmt.Sprintf("{id: %d, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
+		node.id, node.nodeType, node.edges, parentData, childrenData, node.fragments)
 }
 
 func (node *Node) SetType(nodeType NodeType) {
@@ -63,6 +66,11 @@ func (node *Node) ClearEdges() {
 
 func (node *Node) AddEdges(edges []utils.Edge) {
 	node.edges = append(node.edges, edges...)
+
+	for _, edge := range edges {
+		node.fragments[edge.Src] = edge.Src
+		node.fragments[edge.Dest] = edge.Dest
+	}
 }
 
 func (node *Node) SetParent(parent *Node) {
