@@ -44,7 +44,8 @@ func (s *SubLinearServer) ShutDown() {
 	log.Printf("%s - server stopped", s.addr)
 }
 
-// rpcs
+// --- rpcs ---
+
 func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.AccumulatedData) (*edgeDataComms.DataResponse, error) {
 	// add edges from child
 	edges := []utils.Edge{}
@@ -55,7 +56,7 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.A
 	s.nodeData.AddEdges(edges)
 
 	// add fragments from child
-	for vertex, id := range data.GetFragmentData().GetFragmentIds() {
+	for vertex, id := range data.GetFragmentIds() {
 		s.nodeData.AddFragment(int(vertex), int(id))
 	}
 

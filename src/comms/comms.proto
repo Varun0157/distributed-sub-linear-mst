@@ -13,12 +13,10 @@ message EdgeData {
   int32 weight = 3;
 }
 
-message FragmentData { map<int32, int32> fragmentIds = 1; }
-
 message AccumulatedData {
   int32 srcId = 1;
   repeated EdgeData edges = 2;
-  FragmentData fragmentData = 3;
+  map<int32, int32> fragmentIds = 4;
 }
 
 message DataResponse { bool success = 1; }
