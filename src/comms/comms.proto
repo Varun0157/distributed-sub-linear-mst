@@ -16,8 +16,9 @@ message EdgeData {
 message FragmentData { map<int32, int32> fragmentIds = 1; }
 
 message AccumulatedData {
-  repeated EdgeData edges = 1;
-  string addr = 2;
+  int32 srcId = 1;
+  repeated EdgeData edges = 2;
+  FragmentData fragmentData = 3;
 }
 
 message DataResponse { bool success = 1; }

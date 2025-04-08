@@ -24,8 +24,8 @@ func NewSubLinearServer(lis net.Listener, nodeData *NodeData) (*SubLinearServer,
 		addr:       lis.Addr().String(),
 		grpcServer: grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt64), grpc.MaxRecvMsgSize(math.MaxInt64)),
 	}
-	edgeDataComms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 
+	edgeDataComms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 	go func() {
 		if err := s.grpcServer.Serve(lis); err != nil {
 			log.Fatalf("%s - failed to serve: %v", s.addr, err)
