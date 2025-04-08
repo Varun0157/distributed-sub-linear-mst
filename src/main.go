@@ -35,6 +35,9 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	for _, edge := range edges {
 		node := nodeGenerator.CreateNode()
 		node.AddEdges([]utils.Edge{*edge})
+		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
+			node.AddFragment(vertex, vertex)
+		}
 		node.SetType(LEAF)
 
 		nodes = append(nodes, node)

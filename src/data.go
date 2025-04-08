@@ -66,11 +66,6 @@ func (node *NodeData) ClearEdges() {
 
 func (node *NodeData) AddEdges(edges []utils.Edge) {
 	node.edges = append(node.edges, edges...)
-
-	for _, edge := range edges {
-		node.fragments[edge.Src] = edge.Src
-		node.fragments[edge.Dest] = edge.Dest
-	}
 }
 
 func (node *NodeData) SetParent(parent *NodeData) {
@@ -79,6 +74,10 @@ func (node *NodeData) SetParent(parent *NodeData) {
 
 func (node *NodeData) SetChildren(children []*NodeData) {
 	node.children = children
+}
+
+func (node *NodeData) AddFragment(vertex, id int) {
+	node.fragments[vertex] = id
 }
 
 type NodeDataGenerator struct {
