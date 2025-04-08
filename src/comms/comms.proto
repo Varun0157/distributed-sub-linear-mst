@@ -1,0 +1,23 @@
+syntax = "proto3";
+option go_package = "mst/sublinear/comms";
+package comms;
+
+service EdgeDataService {
+  rpc PropogateUp(AccumulatedData) returns (DataResponse) {}
+  rpc PropogateDown(AccumulatedData) returns (DataResponse) {}
+}
+
+message EdgeData {
+  int32 src = 1;
+  int32 dest = 2;
+  int32 weight = 3;
+}
+
+message FragmentData { map<int32, int32> fragmentIds = 1; }
+
+message AccumulatedData {
+  repeated EdgeData edges = 1;
+  string addr = 2;
+}
+
+message DataResponse { bool success = 1; }
