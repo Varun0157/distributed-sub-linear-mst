@@ -28,9 +28,9 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
-func createTree(edges []*utils.Edge) ([]*Node, error) {
-	nodeGenerator := NewNodeGenerator()
-	nodes := []*Node{}
+func createTree(edges []*utils.Edge) ([]*NodeData, error) {
+	nodeGenerator := NewNodeDataGenerator()
+	nodes := []*NodeData{}
 
 	for _, edge := range edges {
 		node := nodeGenerator.CreateNode()
@@ -44,13 +44,14 @@ func createTree(edges []*utils.Edge) ([]*Node, error) {
 	// build tree from children
 
 	NUM_CHILDREN := 2
-	queue := make([]*Node, len(nodes))
+	queue := make([]*NodeData, len(nodes))
 	copy(queue, nodes)
 
 	for len(queue) > 1 {
 		numNodes := len(queue)
+		NUM_PARENTS := numNodes / NUM_CHILDREN
 
-		for start := 0; start < numNodes/NUM_CHILDREN; start++ {
+		for start := 0; start < NUM_PARENTS; start++ {
 			children := queue[:NUM_CHILDREN]
 			queue = queue[NUM_CHILDREN:]
 

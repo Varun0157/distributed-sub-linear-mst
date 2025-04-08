@@ -17,28 +17,28 @@ const (
 	UNKNOWN
 )
 
-type Node struct {
+type NodeData struct {
 	id       uint64
 	nodeType NodeType
 
 	edges     []utils.Edge
-	parent    *Node
-	children  []*Node
+	parent    *NodeData
+	children  []*NodeData
 	fragments map[int]int
 }
 
-func NewNode(id uint64) *Node {
-	return &Node{
+func NewNodeData(id uint64) *NodeData {
+	return &NodeData{
 		id:        id,
 		nodeType:  UNKNOWN,
 		edges:     []utils.Edge{},
 		parent:    nil,
-		children:  []*Node{},
+		children:  []*NodeData{},
 		fragments: make(map[int]int),
 	}
 }
 
-func (node Node) String() string {
+func (node NodeData) String() string {
 	childrenData := []uint64{}
 	for _, child := range node.children {
 		if child == nil {
@@ -56,15 +56,15 @@ func (node Node) String() string {
 		node.id, node.nodeType, node.edges, parentData, childrenData, node.fragments)
 }
 
-func (node *Node) SetType(nodeType NodeType) {
+func (node *NodeData) SetType(nodeType NodeType) {
 	node.nodeType = nodeType
 }
 
-func (node *Node) ClearEdges() {
+func (node *NodeData) ClearEdges() {
 	node.edges = []utils.Edge{}
 }
 
-func (node *Node) AddEdges(edges []utils.Edge) {
+func (node *NodeData) AddEdges(edges []utils.Edge) {
 	node.edges = append(node.edges, edges...)
 
 	for _, edge := range edges {
@@ -73,26 +73,26 @@ func (node *Node) AddEdges(edges []utils.Edge) {
 	}
 }
 
-func (node *Node) SetParent(parent *Node) {
+func (node *NodeData) SetParent(parent *NodeData) {
 	node.parent = parent
 }
 
-func (node *Node) SetChildren(children []*Node) {
+func (node *NodeData) SetChildren(children []*NodeData) {
 	node.children = children
 }
 
-type NodeGenerator struct {
+type NodeDataGenerator struct {
 	idCounterMutex sync.Mutex
 	idCounter      uint64
 }
 
-func NewNodeGenerator() *NodeGenerator {
-	return &NodeGenerator{
+func NewNodeDataGenerator() *NodeDataGenerator {
+	return &NodeDataGenerator{
 		idCounter: 0,
 	}
 }
 
-func (nodeGenerator *NodeGenerator) getNextId() (uint64, error) {
+func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
 	nodeGenerator.idCounterMutex.Lock()
 	defer nodeGenerator.idCounterMutex.Unlock()
 
@@ -102,12 +102,12 @@ func (nodeGenerator *NodeGenerator) getNextId() (uint64, error) {
 	return id, nil
 }
 
-func (nodeGenerator *NodeGenerator) CreateNode() *Node {
+func (nodeGenerator *NodeDataGenerator) CreateNode() *NodeData {
 	id, err := nodeGenerator.getNextId()
 	if err != nil {
 		log.Fatalf("[ERROR] failed to get next id: %v", err)
 	}
 
-	node := NewNode(id)
+	node := NewNodeData(id)
 	return node
 }
