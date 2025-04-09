@@ -18,13 +18,17 @@ const (
 )
 
 type NodeData struct {
+	// static after init
 	id       uint64
 	nodeType NodeType
+	parent   *NodeData
+	children []*NodeData
 
-	edges     []utils.Edge
-	parent    *NodeData
-	children  []*NodeData
-	fragments map[int]int
+	// dynamic with phase progression
+	edgesMutex     sync.Mutex
+	edges          []utils.Edge
+	fragmentsMutex sync.Mutex
+	fragments      map[int]int
 }
 
 func NewNodeData(id uint64) *NodeData {
@@ -38,7 +42,7 @@ func NewNodeData(id uint64) *NodeData {
 	}
 }
 
-func (node NodeData) String() string {
+func (node *NodeData) String() string {
 	childrenData := []uint64{}
 	for _, child := range node.children {
 		if child == nil {
@@ -60,14 +64,6 @@ func (node *NodeData) SetType(nodeType NodeType) {
 	node.nodeType = nodeType
 }
 
-func (node *NodeData) ClearEdges() {
-	node.edges = []utils.Edge{}
-}
-
-func (node *NodeData) AddEdges(edges []utils.Edge) {
-	node.edges = append(node.edges, edges...)
-}
-
 func (node *NodeData) SetParent(parent *NodeData) {
 	node.parent = parent
 }
@@ -76,7 +72,24 @@ func (node *NodeData) SetChildren(children []*NodeData) {
 	node.children = children
 }
 
+func (node *NodeData) ClearEdges() {
+	node.edgesMutex.Lock()
+	defer node.edgesMutex.Unlock()
+
+	node.edges = []utils.Edge{}
+}
+
+func (node *NodeData) AddEdges(edges []utils.Edge) {
+	node.edgesMutex.Lock()
+	defer node.edgesMutex.Unlock()
+
+	node.edges = append(node.edges, edges...)
+}
+
 func (node *NodeData) AddFragment(vertex, id int) {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
 	node.fragments[vertex] = id
 }
 
