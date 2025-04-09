@@ -1,0 +1,1 @@
+- [ ] currently, separate up and down propogation steps, merge into a single with the help of a mutex (child waits for parent if not received all children edges)
