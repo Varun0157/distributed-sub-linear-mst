@@ -33,7 +33,12 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	nodes := []*NodeData{}
 
 	for _, edge := range edges {
-		node := nodeGenerator.CreateNode()
+		lis, err := listenOnRandomAddr()
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on random addr: %v", err)
+		}
+
+		node := nodeGenerator.CreateNode(lis)
 		node.AddEdges([]utils.Edge{*edge})
 		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
 			node.AddFragment(vertex, vertex)
@@ -58,7 +63,12 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 			children := queue[:NUM_CHILDREN]
 			queue = queue[NUM_CHILDREN:]
 
-			parent := nodeGenerator.CreateNode()
+			lis, err := listenOnRandomAddr()
+			if err != nil {
+				return nil, fmt.Errorf("failed to listen on random addr: %v", err)
+			}
+
+			parent := nodeGenerator.CreateNode(lis)
 			parent.SetType(INTERMEDIATE)
 			parent.SetChildren(children)
 			for _, child := range children {

@@ -6,7 +6,6 @@ import (
 	"math"
 	edgeDataComms "mst/sublinear/comms"
 	utils "mst/sublinear/utils"
-	"net"
 
 	"google.golang.org/grpc"
 )
@@ -15,33 +14,31 @@ type SubLinearServer struct {
 	receivedData int // during upward propogation, number of children we received edges from
 	nodeData     *NodeData
 
-	addr       string
 	grpcServer *grpc.Server
 	edgeDataComms.UnimplementedEdgeDataServiceServer
 }
 
-func NewSubLinearServer(lis net.Listener, nodeData *NodeData) (*SubLinearServer, error) {
+func NewSubLinearServer(nodeData *NodeData) (*SubLinearServer, error) {
 	s := &SubLinearServer{
 		receivedData: 0,
 		nodeData:     nodeData,
-		addr:         lis.Addr().String(),
 		grpcServer:   grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt64), grpc.MaxRecvMsgSize(math.MaxInt64)),
 	}
 
 	edgeDataComms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 	go func() {
-		if err := s.grpcServer.Serve(lis); err != nil {
-			log.Fatalf("%s - failed to serve: %v", s.addr, err)
+		if err := s.grpcServer.Serve(s.nodeData.lis); err != nil {
+			log.Fatalf("%s - failed to serve: %v", s.nodeData.GetAddr(), err)
 		}
 	}()
-	log.Printf("%s - server started", s.addr)
+	log.Printf("%s - server started", s.nodeData.GetAddr())
 
 	return s, nil
 }
 
 func (s *SubLinearServer) ShutDown() {
 	s.grpcServer.GracefulStop()
-	log.Printf("%s - server stopped", s.addr)
+	log.Printf("%s - server stopped", s.nodeData.GetAddr())
 }
 
 // --- rpcs ---

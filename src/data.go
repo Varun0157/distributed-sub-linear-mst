@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"sync"
 
 	utils "mst/sublinear/utils"
@@ -20,6 +21,7 @@ const (
 type NodeData struct {
 	// static after init
 	id       uint64
+	lis      net.Listener
 	nodeType NodeType
 	parent   *NodeData
 	children []*NodeData
@@ -31,9 +33,10 @@ type NodeData struct {
 	fragments      map[int]int
 }
 
-func NewNodeData(id uint64) *NodeData {
+func NewNodeData(id uint64, lis net.Listener) *NodeData {
 	return &NodeData{
 		id:        id,
+		lis:       lis,
 		nodeType:  UNKNOWN,
 		edges:     []utils.Edge{},
 		parent:    nil,
@@ -56,8 +59,12 @@ func (node *NodeData) String() string {
 		parentData = fmt.Sprintf("%d", parent.id)
 	}
 
-	return fmt.Sprintf("{id: %d, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
-		node.id, node.nodeType, node.edges, parentData, childrenData, node.fragments)
+	return fmt.Sprintf("{id: %d, addr: %s, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
+		node.id, node.GetAddr(), node.nodeType, node.edges, parentData, childrenData, node.fragments)
+}
+
+func (node *NodeData) GetAddr() string {
+	return node.lis.Addr().String()
 }
 
 func (node *NodeData) SetType(nodeType NodeType) {
@@ -114,12 +121,12 @@ func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
 	return id, nil
 }
 
-func (nodeGenerator *NodeDataGenerator) CreateNode() *NodeData {
+func (nodeGenerator *NodeDataGenerator) CreateNode(lis net.Listener) *NodeData {
 	id, err := nodeGenerator.getNextId()
 	if err != nil {
 		log.Fatalf("[ERROR] failed to get next id: %v", err)
 	}
 
-	node := NewNodeData(id)
+	node := NewNodeData(id, lis)
 	return node
 }
