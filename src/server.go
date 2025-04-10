@@ -56,14 +56,14 @@ func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragme
 	fragmentUpdates := make(map[int]int)
 
 	// add edges from request
-	edges := []utils.Edge{}
+	edges := []*utils.Edge{}
 	for _, edgeData := range edgeData {
 		src := int(edgeData.GetSrc())
 		dest := int(edgeData.GetDest())
 		weight := int(edgeData.GetWeight())
 
 		edge := utils.NewEdge(src, dest, weight)
-		edges = append(edges, *edge)
+		edges = append(edges, edge)
 
 		srcFragment := int(fragmentIds[int32(src)])
 		trgFragment := int(fragmentIds[int32(dest)])
@@ -93,7 +93,8 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.A
 		return &edgeDataComms.DataResponse{Success: true}, nil
 	}
 
-	// TODO: propogate further up
+	// send to parent
+	s.sendEdgesUp()
 
 	return &edgeDataComms.DataResponse{Success: true}, nil
 }
