@@ -9,7 +9,7 @@ def generate_graph(n, m, output_file):
         u = random.randint(1, n)
         v = random.randint(1, n)
 
-        if u != v and (u, v) not in edges:
+        if u != v and (u, v) not in edges and (v, u) not in edges:
             edges.add((u, v))
 
     with open(output_file, "w") as f:
