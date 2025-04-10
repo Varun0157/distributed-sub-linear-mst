@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"sync"
 
@@ -111,6 +112,24 @@ func NewNodeDataGenerator() *NodeDataGenerator {
 	}
 }
 
+func listenOnRandomAddr() (lis net.Listener, err error) {
+	log.Println("attempting to listen on random port")
+	for {
+		port := rand.Intn(65535-1024) + 1024
+		addr := fmt.Sprintf(":%d", port)
+
+		lis, err = net.Listen("tcp", addr)
+		if err == nil {
+			break
+		}
+
+		log.Printf("failed to listen on addr %s: %v", addr, err)
+	}
+	log.Printf("listening on port %s", lis.Addr().String())
+
+	return lis, nil
+}
+
 func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
 	nodeGenerator.idCounterMutex.Lock()
 	defer nodeGenerator.idCounterMutex.Unlock()
@@ -121,12 +140,17 @@ func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
 	return id, nil
 }
 
-func (nodeGenerator *NodeDataGenerator) CreateNode(lis net.Listener) *NodeData {
+func (nodeGenerator *NodeDataGenerator) CreateNode() (*NodeData, error) {
 	id, err := nodeGenerator.getNextId()
 	if err != nil {
-		log.Fatalf("[ERROR] failed to get next id: %v", err)
+		return nil, fmt.Errorf("[ERROR] failed to get next id: %v", err)
+	}
+
+	lis, err := listenOnRandomAddr()
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] failed to listen on random addr: %v", err)
 	}
 
 	node := NewNodeData(id, lis)
-	return node
+	return node, nil
 }

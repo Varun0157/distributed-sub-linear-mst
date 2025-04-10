@@ -3,42 +3,21 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
-	"net"
 	"os"
 
 	utils "mst/sublinear/utils"
 )
-
-func listenOnRandomAddr() (lis net.Listener, err error) {
-	log.Println("attempting to listen on random port")
-	for {
-		port := rand.Intn(65535-1024) + 1024
-		addr := fmt.Sprintf(":%d", port)
-
-		lis, err = net.Listen("tcp", addr)
-		if err == nil {
-			break
-		}
-
-		log.Printf("failed to listen on addr %s: %v", addr, err)
-	}
-	log.Printf("listening on port %s", lis.Addr().String())
-
-	return lis, nil
-}
 
 func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
 	nodes := []*NodeData{}
 
 	for _, edge := range edges {
-		lis, err := listenOnRandomAddr()
+		node, err := nodeGenerator.CreateNode()
 		if err != nil {
-			return nil, fmt.Errorf("failed to listen on random addr: %v", err)
+			return nil, fmt.Errorf("failed to create node: %v", err)
 		}
 
-		node := nodeGenerator.CreateNode(lis)
 		node.AddEdges([]utils.Edge{*edge})
 		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
 			node.AddFragment(vertex, vertex)
@@ -48,8 +27,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 		nodes = append(nodes, node)
 	}
 
-	// kind of a reverse level order traversal
-	// build tree from children
+	// kind of a reverse level order traversal to build a tree from leaves
 
 	NUM_CHILDREN := 2
 	queue := make([]*NodeData, len(nodes))
@@ -63,19 +41,20 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 			children := queue[:NUM_CHILDREN]
 			queue = queue[NUM_CHILDREN:]
 
-			lis, err := listenOnRandomAddr()
+			parent, err := nodeGenerator.CreateNode()
 			if err != nil {
-				return nil, fmt.Errorf("failed to listen on random addr: %v", err)
+				return nil, fmt.Errorf("failed to create parent node: %v", err)
 			}
 
-			parent := nodeGenerator.CreateNode(lis)
 			parent.SetType(INTERMEDIATE)
 			parent.SetChildren(children)
 			for _, child := range children {
 				child.SetParent(parent)
 			}
+			// to continue the upward level order traversal
 			queue = append(queue, parent)
 
+			// add the node to the list
 			nodes = append(nodes, parent)
 		}
 	}
