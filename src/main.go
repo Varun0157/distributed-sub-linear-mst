@@ -18,7 +18,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 			return nil, fmt.Errorf("failed to create node: %v", err)
 		}
 
-		node.AddEdges([]utils.Edge{*edge})
+		node.AddEdges([]*utils.Edge{edge})
 		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
 			node.AddFragment(vertex, vertex)
 		}

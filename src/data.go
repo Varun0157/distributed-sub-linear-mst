@@ -29,7 +29,7 @@ type NodeData struct {
 
 	// dynamic with phase progression
 	edgesMutex     sync.Mutex
-	edges          []utils.Edge
+	edges          []*utils.Edge
 	fragmentsMutex sync.Mutex
 	fragments      map[int]int
 }
@@ -39,7 +39,7 @@ func NewNodeData(id uint64, lis net.Listener) *NodeData {
 		id:        id,
 		lis:       lis,
 		nodeType:  UNKNOWN,
-		edges:     []utils.Edge{},
+		edges:     []*utils.Edge{},
 		parent:    nil,
 		children:  []*NodeData{},
 		fragments: make(map[int]int),
@@ -84,10 +84,10 @@ func (node *NodeData) ClearEdges() {
 	node.edgesMutex.Lock()
 	defer node.edgesMutex.Unlock()
 
-	node.edges = []utils.Edge{}
+	node.edges = []*utils.Edge{}
 }
 
-func (node *NodeData) AddEdges(edges []utils.Edge) {
+func (node *NodeData) AddEdges(edges []*utils.Edge) {
 	node.edgesMutex.Lock()
 	defer node.edgesMutex.Unlock()
 
