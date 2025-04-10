@@ -113,7 +113,6 @@ func NewNodeDataGenerator() *NodeDataGenerator {
 }
 
 func listenOnRandomAddr() (lis net.Listener, err error) {
-	log.Println("attempting to listen on random port")
 	for {
 		port := rand.Intn(65535-1024) + 1024
 		addr := fmt.Sprintf(":%d", port)
@@ -143,12 +142,12 @@ func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
 func (nodeGenerator *NodeDataGenerator) CreateNode() (*NodeData, error) {
 	id, err := nodeGenerator.getNextId()
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] failed to get next id: %v", err)
+		return nil, fmt.Errorf("failed to get next id: %v", err)
 	}
 
 	lis, err := listenOnRandomAddr()
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] failed to listen on random addr: %v", err)
+		return nil, fmt.Errorf("failed to listen on random addr: %v", err)
 	}
 
 	node := NewNodeData(id, lis)

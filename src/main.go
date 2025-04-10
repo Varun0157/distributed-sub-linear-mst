@@ -10,8 +10,8 @@ import (
 
 func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
-	nodes := []*NodeData{}
 
+	nodes := []*NodeData{}
 	for _, edge := range edges {
 		node, err := nodeGenerator.CreateNode()
 		if err != nil {
@@ -59,8 +59,8 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 		}
 	}
 
-	if len(nodes) > 0 {
-		root := nodes[len(nodes)-1]
+	if len(queue) > 0 {
+		root := queue[0]
 		root.SetType(ROOT)
 	}
 
@@ -94,7 +94,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := run(os.Args[1], os.Args[2])
+	infile := os.Args[1]
+	outfile := os.Args[2]
+
+	err := run(infile, outfile)
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}

@@ -11,8 +11,8 @@ import (
 )
 
 type SubLinearServer struct {
-	receivedData int // during upward propogation, number of children we received edges from
-	nodeData     *NodeData
+	receivedCount int // during upward propogation, number of children we received edges from
+	nodeData      *NodeData
 
 	grpcServer *grpc.Server
 	edgeDataComms.UnimplementedEdgeDataServiceServer
@@ -20,13 +20,14 @@ type SubLinearServer struct {
 
 func NewSubLinearServer(nodeData *NodeData) (*SubLinearServer, error) {
 	s := &SubLinearServer{
-		receivedData: 0,
-		nodeData:     nodeData,
-		grpcServer:   grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt64), grpc.MaxRecvMsgSize(math.MaxInt64)),
+		receivedCount: 0,
+		nodeData:      nodeData,
+		grpcServer:    grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt64), grpc.MaxRecvMsgSize(math.MaxInt64)),
 	}
 
 	edgeDataComms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 	go func() {
+		// TODO: consider removing the Fatalf and returning an error instead would involve channels and such
 		if err := s.grpcServer.Serve(s.nodeData.lis); err != nil {
 			log.Fatalf("%s - failed to serve: %v", s.nodeData.GetAddr(), err)
 		}
@@ -58,10 +59,10 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.A
 	}
 
 	// update received count
-	s.receivedData++
+	s.receivedCount++
 
 	// if we have not received data from all children, return
-	if s.receivedData < len(s.nodeData.children) {
+	if s.receivedCount < len(s.nodeData.children) {
 		return &edgeDataComms.DataResponse{Success: true}, nil
 	}
 
