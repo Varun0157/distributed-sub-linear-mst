@@ -42,24 +42,51 @@ func (s *SubLinearServer) ShutDown() {
 	log.Printf("%s - server stopped", s.nodeData.GetAddr())
 }
 
-// --- rpcs ---
+func fetchLeafValue(fragmentIds map[int]int, k int) int {
+	v := fragmentIds[k]
+	if _, ok := fragmentIds[v]; ok {
+		return fetchLeafValue(fragmentIds, v)
+	}
 
-func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.AccumulatedData) (*edgeDataComms.DataResponse, error) {
+	return int(v)
+}
+
+func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragmentIds map[int32]int32) {
+	// update fragment 'key' to be part of fragment 'value'
+	fragmentUpdates := make(map[int]int)
+
 	// add edges from request
 	edges := []utils.Edge{}
-	for _, edgeData := range data.Edges {
-		edge := utils.NewEdge(int(edgeData.GetSrc()), int(edgeData.GetDest()), int(edgeData.GetWeight()))
+	for _, edgeData := range edgeData {
+		src := int(edgeData.GetSrc())
+		dest := int(edgeData.GetDest())
+		weight := int(edgeData.GetWeight())
+
+		edge := utils.NewEdge(src, dest, weight)
 		edges = append(edges, *edge)
+
+		srcFragment := int(fragmentIds[int32(src)])
+		trgFragment := int(fragmentIds[int32(dest)])
+		fragmentUpdates[srcFragment] = trgFragment
 	}
 	s.nodeData.AddEdges(edges)
 
-	// add fragments from request
-	for vertex, id := range data.GetFragmentIds() {
-		s.nodeData.AddFragment(int(vertex), int(id))
+	for fragment := range fragmentUpdates {
+		// if we have '1' -> '2' and '2' -> '3', we want to make sure that
+		// we only have '1' -> '3' and '2' -> '3' in the end, or there will
+		// be confusion in the intermediate updates
+		s.nodeData.AddFragment(fragment, fetchLeafValue(fragmentUpdates, fragment))
 	}
 
 	// update received count
 	s.receivedCount++
+}
+
+// --- RPCs ---
+
+func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.AccumulatedData) (*edgeDataComms.DataResponse, error) {
+	// update state with received data
+	s.updateState(data.GetEdges(), data.GetFragmentIds())
 
 	// if we have not received data from all children, return
 	if s.receivedCount < len(s.nodeData.children) {

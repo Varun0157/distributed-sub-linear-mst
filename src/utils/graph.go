@@ -14,28 +14,32 @@ func CreateAdjacencyList(edges []*Edge) map[int][]EdgeTarget {
 	return adjacencyList
 }
 
-// getMoE returns the minimum outgoing edge for each fragment given the current
-// graph and fragment ids
-func getMoE(adjacencyList map[int][]EdgeTarget, fragmentIds map[int]int) map[int]*Edge {
-	getMinOutgoingTargetEdge := func(src int, targets []EdgeTarget) *Edge {
-		var minEdge *Edge = nil
+func getMinOutgoingTargetEdge(src int, targets []EdgeTarget, fragmentIds map[int]int) *Edge {
+	var minEdge *Edge = nil
 
-		for _, target := range targets {
-			if fragmentIds[src] == fragmentIds[target.Dest] {
-				continue
-			}
-			if minEdge != nil && minEdge.Weight <= target.Weight {
-				continue
-			}
-			minEdge = NewEdge(src, target.Dest, target.Weight)
+	for _, target := range targets {
+		if fragmentIds[src] == fragmentIds[target.Dest] {
+			continue
 		}
-
-		return minEdge
+		if minEdge != nil && minEdge.Weight <= target.Weight {
+			continue
+		}
+		minEdge = NewEdge(src, target.Dest, target.Weight)
 	}
 
+	return minEdge
+}
+
+// returns the minimum outgoing edge for each fragment given the current
+// graph and fragment ids
+func getMoE(adjacencyList map[int][]EdgeTarget, fragmentIds map[int]int, fragmentId int) map[int]*Edge {
 	moes := make(map[int]*Edge)
 	for src, targets := range adjacencyList {
-		minEdge := getMinOutgoingTargetEdge(src, targets)
+		if fragmentIds[src] != fragmentId {
+			continue
+		}
+
+		minEdge := getMinOutgoingTargetEdge(src, targets, fragmentIds)
 		if minEdge == nil {
 			continue
 		}
