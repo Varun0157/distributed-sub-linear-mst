@@ -50,7 +50,7 @@ func (node *NodeData) String() string {
 	childrenData := []uint64{}
 	for _, child := range node.children {
 		if child == nil {
-			log.Println("child is nil")
+			continue
 		}
 		childrenData = append(childrenData, child.id)
 	}
@@ -60,8 +60,13 @@ func (node *NodeData) String() string {
 		parentData = fmt.Sprintf("%d", parent.id)
 	}
 
+	edgeData := make([]utils.Edge, 0)
+	for _, edge := range node.edges {
+		edgeData = append(edgeData, *edge)
+	}
+
 	return fmt.Sprintf("{id: %d, addr: %s, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
-		node.id, node.GetAddr(), node.nodeType, node.edges, parentData, childrenData, node.fragments)
+		node.id, node.GetAddr(), node.nodeType, edgeData, parentData, childrenData, node.fragments)
 }
 
 func (node *NodeData) GetAddr() string {

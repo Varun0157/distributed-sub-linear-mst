@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	comms "mst/sublinear/comms"
 	utils "mst/sublinear/utils"
 
@@ -11,6 +12,9 @@ import (
 )
 
 func (s *SubLinearServer) sendEdgesUp() error {
+	if s.nodeData.parent == nil {
+		return fmt.Errorf("no parent node to send edges to")
+	}
 	receiverAddr := s.nodeData.parent.GetAddr()
 
 	conn, err := grpc.NewClient(receiverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -36,6 +40,7 @@ func (s *SubLinearServer) sendEdgesUp() error {
 			fragmentData[int32(vertex)] = int32(s.nodeData.fragments[vertex])
 		}
 	}
+	log.Printf("%d - sending %v edges and %v fragments to %d", s.nodeData.id, moeData, fragmentData, s.nodeData.parent.id)
 
 	req := &comms.AccumulatedData{Edges: moeData, FragmentIds: fragmentData, SrcId: int32(s.nodeData.id)}
 
