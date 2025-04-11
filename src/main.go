@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
+	"time"
 
 	utils "mst/sublinear/utils"
 )
@@ -81,9 +83,31 @@ func run(graphFile string, outFile string) error {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
 
+	servers := []*SubLinearServer{}
 	for _, node := range nodes {
-		log.Printf("node: %v", node)
+		log.Printf("node: %s", node.String())
+		server, err := NewSubLinearServer(node)
+		if err != nil {
+			return fmt.Errorf("failed to create server: %v", err)
+		}
+		servers = append(servers, server)
 	}
+
+	serverWg := sync.WaitGroup{}
+	for _, s := range servers {
+		if s.nodeData.nodeType != LEAF {
+			continue
+		}
+		serverWg.Add(1)
+		go func() {
+			defer serverWg.Done()
+
+			s.sendEdgesUp()
+		}()
+	}
+	serverWg.Wait()
+
+	time.Sleep(5 * time.Second)
 
 	return nil
 }

@@ -52,7 +52,6 @@ func fetchLeafValue(fragmentIds map[int]int, k int) int {
 }
 
 func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragmentIds map[int32]int32) {
-	// update fragment 'key' to be part of fragment 'value'
 	fragmentUpdates := make(map[int]int)
 
 	// add edges from request
@@ -71,11 +70,17 @@ func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragme
 	}
 	s.nodeData.AddEdges(edges)
 
-	for fragment := range fragmentUpdates {
+	for vertex, fragment := range fragmentIds {
 		// if we have '1' -> '2' and '2' -> '3', we want to make sure that
-		// we only have '1' -> '3' and '2' -> '3' in the end, or there will
-		// be confusion in the intermediate updates
-		s.nodeData.AddFragment(fragment, fetchLeafValue(fragmentUpdates, fragment))
+		// we ultimately have '1' -> '3' and '2' -> '3'
+		oldFragment := int(fragment)
+
+		newFragment := oldFragment
+		if _, ok := fragmentUpdates[oldFragment]; ok {
+			newFragment = fetchLeafValue(fragmentUpdates, oldFragment)
+		}
+
+		s.nodeData.AddFragment(int(vertex), newFragment)
 	}
 
 	// update received count
@@ -93,7 +98,12 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.A
 		return &edgeDataComms.DataResponse{Success: true}, nil
 	}
 
-	// send to parent
+	log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
+
+	// if there is no parent to send data to, return (root node)
+	if s.nodeData.parent == nil {
+		return &edgeDataComms.DataResponse{Success: true}, nil
+	}
 	s.sendEdgesUp()
 
 	return &edgeDataComms.DataResponse{Success: true}, nil
