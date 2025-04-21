@@ -109,6 +109,7 @@ func (s *SubLinearServer) upwardPropListener() {
 
 		s.nodeData.setUpdate(updateMap)
 
+		// TODO: shift to sync.Cond to avoid having to do this
 		for range len(s.nodeData.children) {
 			s.nodeData.updateWg.Done()
 		}
