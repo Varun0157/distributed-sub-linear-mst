@@ -42,7 +42,7 @@ func (s *SubLinearServer) sendEdgesUp() error {
 	}
 	log.Printf("%d - sending %v edges and %v fragments to %d", s.nodeData.id, moeData, fragmentData, s.nodeData.parent.id)
 
-	req := &comms.AccumulatedData{Edges: moeData, FragmentIds: fragmentData, SrcId: int32(s.nodeData.id)}
+	req := &comms.Edges{Edges: moeData, FragmentIds: fragmentData}
 
 	ctx, cancel := context.WithTimeout(context.Background(), utils.RpcTimeout())
 	defer cancel()

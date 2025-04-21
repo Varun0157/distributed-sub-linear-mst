@@ -3,8 +3,8 @@ option go_package = "mst/sublinear/comms";
 package comms;
 
 service EdgeDataService {
-  rpc PropogateUp(AccumulatedData) returns (DataResponse) {}
-  rpc PropogateDown(AccumulatedData) returns (DataResponse) {}
+  rpc PropogateUp(Edges) returns (DataResponse) {}
+  rpc PropogateDown(Edges) returns (DataResponse) {}
 }
 
 message EdgeData {
@@ -13,7 +13,7 @@ message EdgeData {
   int32 weight = 3;
 }
 
-message AccumulatedData {
+message Edges {
   int32 srcId = 1;
   repeated EdgeData edges = 2;
   map<int32, int32> fragmentIds = 4;

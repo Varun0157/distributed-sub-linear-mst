@@ -52,8 +52,6 @@ func fetchLeafValue(fragmentIds map[int]int, k int) int {
 }
 
 func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragmentIds map[int32]int32) {
-	fragmentUpdates := make(map[int]int)
-
 	// add edges from request
 	edges := []*utils.Edge{}
 	for _, edgeData := range edgeData {
@@ -63,35 +61,23 @@ func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragme
 
 		edge := utils.NewEdge(src, dest, weight)
 		edges = append(edges, edge)
-
-		srcFragment := int(fragmentIds[int32(src)])
-		trgFragment := int(fragmentIds[int32(dest)])
-		fragmentUpdates[srcFragment] = trgFragment
 	}
 	s.nodeData.AddEdges(edges)
 
-	for vertex, fragment := range fragmentIds {
-		// if we have '1' -> '2' and '2' -> '3', we want to make sure that
-		// we ultimately have '1' -> '3' and '2' -> '3'
-		oldFragment := int(fragment)
-
-		newFragment := oldFragment
-		if _, ok := fragmentUpdates[oldFragment]; ok {
-			newFragment = fetchLeafValue(fragmentUpdates, oldFragment)
-		}
-
-		s.nodeData.AddFragment(int(vertex), newFragment)
+	// mark the fragments the nodes belong to
+	for node, fragment := range fragmentIds {
+		s.nodeData.AddFragment(int(node), int(fragment))
 	}
-
-	// update received count
-	s.receivedCount++
 }
 
 // --- RPCs ---
 
-func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.AccumulatedData) (*edgeDataComms.DataResponse, error) {
+func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.Edges) (*edgeDataComms.DataResponse, error) {
 	// update state with received data
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
+
+	// update received count
+	s.receivedCount++
 
 	// if we have not received data from all children, return
 	if s.receivedCount < len(s.nodeData.children) {
