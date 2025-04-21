@@ -42,15 +42,6 @@ func (s *SubLinearServer) ShutDown() {
 	log.Printf("%s - server stopped", s.nodeData.GetAddr())
 }
 
-func fetchLeafValue(fragmentIds map[int]int, k int) int {
-	v := fragmentIds[k]
-	if _, ok := fragmentIds[v]; ok {
-		return fetchLeafValue(fragmentIds, v)
-	}
-
-	return int(v)
-}
-
 func (s *SubLinearServer) updateState(edgeData []*edgeDataComms.EdgeData, fragmentIds map[int32]int32) {
 	// add edges from request
 	edges := []*utils.Edge{}
@@ -95,6 +86,17 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *edgeDataComms.E
 	return &edgeDataComms.DataResponse{Success: true}, nil
 }
 
-func (s *SubLinearServer) PropogateDown(ctx context.Context, data *edgeDataComms.AccumulatedData) (*edgeDataComms.DataResponse, error) {
-	return nil, nil
+func (s *SubLinearServer) PropogateDown(ctx context.Context, data *edgeDataComms.Update) (*edgeDataComms.DataResponse, error) {
+	if s.nodeData.nodeType != LEAF {
+		s.sendEdgesDown(data)
+		return &edgeDataComms.DataResponse{Success: true}, nil
+	}
+
+	from := int(data.GetFrom())
+	to := int(data.GetTo())
+	if _, ok := s.nodeData.fragments[from]; ok {
+		log.Printf("%d - updating fragment %d to %d", s.nodeData.id, from, to)
+		s.nodeData.AddFragment(from, to)
+	}
+	return &edgeDataComms.DataResponse{Success: true}, nil
 }

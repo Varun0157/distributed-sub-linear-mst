@@ -109,6 +109,24 @@ func run(graphFile string, outFile string) error {
 
 	time.Sleep(5 * time.Second)
 
+	for _, s := range servers {
+		if s.nodeData.nodeType != ROOT {
+			continue
+		}
+		serverWg.Add(1)
+		go func() {
+			defer serverWg.Done()
+
+			s.sendEdgesDown(nil)
+		}()
+	}
+
+	serverWg.Wait()
+
+	for _, s := range servers {
+		log.Printf("node: %s", s.nodeData.String())
+	}
+
 	return nil
 }
 

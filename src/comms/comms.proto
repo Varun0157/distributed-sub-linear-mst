@@ -4,7 +4,7 @@ package comms;
 
 service EdgeDataService {
   rpc PropogateUp(Edges) returns (DataResponse) {}
-  rpc PropogateDown(Edges) returns (DataResponse) {}
+  rpc PropogateDown(Update) returns (DataResponse) {}
 }
 
 message EdgeData {
@@ -17,6 +17,11 @@ message Edges {
   int32 srcId = 1;
   repeated EdgeData edges = 2;
   map<int32, int32> fragmentIds = 4;
+}
+
+message Update {
+  int32 from = 1;
+  int32 to = 2;
 }
 
 message DataResponse { bool success = 1; }
