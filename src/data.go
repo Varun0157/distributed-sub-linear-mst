@@ -30,8 +30,13 @@ type NodeData struct {
 	// dynamic with phase progression
 	edgesMutex     sync.Mutex
 	edges          []*utils.Edge
+	updateWg       sync.WaitGroup
+	update         map[int]int
 	fragmentsMutex sync.Mutex
 	fragments      map[int]int
+
+	// for tracking child requests
+	childReqWg sync.WaitGroup
 }
 
 func NewNodeData(id uint64, lis net.Listener) *NodeData {
@@ -67,6 +72,10 @@ func (node *NodeData) String() string {
 
 	return fmt.Sprintf("{id: %d, addr: %s, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
 		node.id, node.GetAddr(), node.nodeType, edgeData, parentData, childrenData, node.fragments)
+}
+
+func (node *NodeData) setUpdate(update map[int]int) {
+	node.update = update
 }
 
 func (node *NodeData) GetAddr() string {

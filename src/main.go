@@ -90,6 +90,12 @@ func run(graphFile string, outFile string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create server: %v", err)
 		}
+
+		if len(server.nodeData.children) > 0 {
+			server.nodeData.childReqWg.Add(len(node.children))
+			go server.upwardPropListener()
+		}
+
 		servers = append(servers, server)
 	}
 
@@ -102,26 +108,21 @@ func run(graphFile string, outFile string) error {
 		go func() {
 			defer serverWg.Done()
 
-			s.sendEdgesUp()
+			update, err := s.sendEdgesUp()
+			if err != nil {
+				log.Fatalf("failed to send edges up: %v", err)
+			}
+
+			from := int(update.GetFrom())
+			to := int(update.GetTo())
+			if _, ok := s.nodeData.fragments[from]; ok {
+				s.nodeData.AddFragment(int(from), int(to))
+			}
 		}()
 	}
 	serverWg.Wait()
 
 	time.Sleep(5 * time.Second)
-
-	for _, s := range servers {
-		if s.nodeData.nodeType != ROOT {
-			continue
-		}
-		serverWg.Add(1)
-		go func() {
-			defer serverWg.Done()
-
-			s.sendEdgesDown(nil)
-		}()
-	}
-
-	serverWg.Wait()
 
 	for _, s := range servers {
 		log.Printf("node: %s", s.nodeData.String())

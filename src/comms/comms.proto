@@ -3,8 +3,7 @@ option go_package = "mst/sublinear/comms";
 package comms;
 
 service EdgeDataService {
-  rpc PropogateUp(Edges) returns (DataResponse) {}
-  rpc PropogateDown(Update) returns (DataResponse) {}
+  rpc PropogateUp(Edges) returns (Update) {}
 }
 
 message EdgeData {
@@ -23,5 +22,3 @@ message Update {
   int32 from = 1;
   int32 to = 2;
 }
-
-message DataResponse { bool success = 1; }

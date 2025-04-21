@@ -11,15 +11,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func (s *SubLinearServer) sendEdgesUp() error {
+func (s *SubLinearServer) sendEdgesUp() (*comms.Update, error) {
 	if s.nodeData.parent == nil {
-		return fmt.Errorf("no parent node to send edges to")
+		return nil, fmt.Errorf("no parent node to send edges to")
 	}
 	receiverAddr := s.nodeData.parent.GetAddr()
 
 	conn, err := grpc.NewClient(receiverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("unable to create client connection: %v", err)
+		return nil, fmt.Errorf("unable to create client connection: %v", err)
 	}
 	defer conn.Close()
 	client := comms.NewEdgeDataServiceClient(conn)
@@ -47,63 +47,10 @@ func (s *SubLinearServer) sendEdgesUp() error {
 	ctx, cancel := context.WithTimeout(context.Background(), utils.RpcTimeout())
 	defer cancel()
 
-	resp, err := client.PropogateUp(ctx, req)
+	update, err := client.PropogateUp(ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to send edge data: %v", err)
-	}
-	if !resp.Success {
-		return fmt.Errorf("failed to send edge data")
+		return nil, fmt.Errorf("failed to send edge data: %v", err)
 	}
 
-	return nil
-}
-
-func (s *SubLinearServer) sendEdgesToChild(childAddr string, update *comms.Update) error {
-	conn, err := grpc.NewClient(childAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return fmt.Errorf("unable to create client connection: %v", err)
-	}
-	defer conn.Close()
-	client := comms.NewEdgeDataServiceClient(conn)
-
-	log.Printf("%d - sending update %d to %d to node %s", s.nodeData.id, update.GetFrom(), update.GetTo(), childAddr)
-
-	req := update
-
-	ctx, cancel := context.WithTimeout(context.Background(), utils.RpcTimeout())
-	defer cancel()
-
-	resp, err := client.PropogateDown(ctx, req)
-	if err != nil {
-		return fmt.Errorf("failed to send edge data: %v", err)
-	}
-	if !resp.Success {
-		return fmt.Errorf("failed to send edge data")
-	}
-
-	return nil
-}
-
-func (s *SubLinearServer) sendEdgesDown(update *comms.Update) error {
-	if update == nil {
-		adjacencyList := utils.CreateAdjacencyList(s.nodeData.edges)
-		moes := utils.GetMoEs(adjacencyList, s.nodeData.fragments)
-
-		var moe *utils.Edge = nil
-		for _, edge := range moes {
-			if moe != nil && moe.Weight < edge.Weight {
-				continue
-			}
-			moe = edge
-		}
-
-		update = &comms.Update{From: int32(moe.Src), To: int32(moe.Dest)}
-	}
-
-	for _, child := range s.nodeData.children {
-		childAddr := child.GetAddr()
-		s.sendEdgesToChild(childAddr, update)
-	}
-
-	return nil
+	return update, nil
 }
