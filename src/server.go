@@ -89,7 +89,7 @@ func (s *SubLinearServer) upwardPropListener() {
 	// upward prop
 	update, error := func() (*comms.Update, error) {
 		if s.nodeData.parent != nil {
-			return s.getMoeUpdate()
+			return s.sendEdgesUp()
 		} else {
 			return s.getMoeUpdate()
 		}

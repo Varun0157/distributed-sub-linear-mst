@@ -44,9 +44,10 @@ func NewNodeData(id uint64, lis net.Listener) *NodeData {
 		id:         id,
 		lis:        lis,
 		nodeType:   UNKNOWN,
-		edges:      []*utils.Edge{},
 		parent:     nil,
 		children:   []*NodeData{},
+		edges:      []*utils.Edge{},
+		update:     make(map[int32]int32),
 		fragments:  make(map[int]int),
 		updateCond: *sync.NewCond(&sync.Mutex{}),
 	}

@@ -1,3 +1,3 @@
 - [ ] create a unified vertex type that stores the fragment id - would help avoid having to send a separate dict probably
-- [ ] currently, separate up and down propogation steps, merge into a single with the help of a mutex (child waits for parent if not received all children edges)
+- [x] currently, separate up and down propogation steps, merge into a single with the help of a mutex (child waits for parent if not received all children edges)
   - this would mitigate the need for a received count state in the server, and reduce the amount of communication that takes place
