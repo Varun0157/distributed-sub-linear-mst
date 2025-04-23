@@ -87,34 +87,21 @@ func (s *SubLinearServer) upwardPropListener() {
 	log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
 
 	// upward prop
-	if s.nodeData.parent != nil {
-		update, error := s.sendEdgesUp()
-		if error != nil {
-			log.Fatalf("failed to send edges up: %v", error)
+	update, error := func() (*comms.Update, error) {
+		if s.nodeData.parent != nil {
+			return s.getMoeUpdate()
+		} else {
+			return s.getMoeUpdate()
 		}
-
-		updateMap := make(map[int32]int32)
-		for k, v := range update.GetUpdates() {
-			updateMap[(k)] = (v)
-		}
-		s.nodeData.setUpdate(updateMap)
-
-		s.nodeData.updateCond.Broadcast()
-	} else {
-		update, error := s.getMoeUpdate()
-		if error != nil {
-			log.Printf("failed to get update: %v", error)
-		}
-		log.Printf("update: %v", update)
-
-		updateMap := make(map[int32]int32)
-		for k, v := range update.GetUpdates() {
-			updateMap[(k)] = (v)
-		}
-		s.nodeData.setUpdate(updateMap)
-
-		s.nodeData.updateCond.Broadcast()
+	}()
+	if error != nil {
+		log.Fatalf("failed to send edges up: %v", error)
 	}
+
+	s.nodeData.setUpdate(update.GetUpdates())
+
+	// wake consumers of update so they can send a response to children
+	s.nodeData.updateCond.Broadcast()
 
 	// launch another listener
 	s.nodeData.childReqWg.Add(len(s.nodeData.children))
@@ -131,7 +118,7 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	log.Printf("%d - received edges from child", s.nodeData.id)
 	s.nodeData.childReqWg.Done()
 
-	// another child requesting an update
+	// wait until update is sent (consumer)
 	s.nodeData.updateCond.L.Lock()
 	s.nodeData.updateCond.Wait()
 	s.nodeData.updateCond.L.Unlock()
