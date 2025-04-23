@@ -16,6 +16,10 @@ type Edge struct {
 	Weight int
 }
 
+func (Edge *Edge) String() string {
+	return fmt.Sprintf("src: %d, dest: %d, weight: %d", Edge.Src, Edge.Dest, Edge.Weight)
+}
+
 func NewEdge(src, dest, weight int) *Edge {
 	return &Edge{
 		Src:    src,

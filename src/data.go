@@ -110,7 +110,14 @@ func (node *NodeData) AddEdges(edges []*utils.Edge) {
 	node.edges = append(node.edges, edges...)
 }
 
-func (node *NodeData) AddFragment(vertex, id int) {
+func (node *NodeData) ClearFragments() {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	node.fragments = make(map[int]int)
+}
+
+func (node *NodeData) UpdateFragment(vertex, id int) {
 	node.fragmentsMutex.Lock()
 	defer node.fragmentsMutex.Unlock()
 

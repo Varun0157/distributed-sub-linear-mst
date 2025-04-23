@@ -57,7 +57,7 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 
 	// mark the fragments the nodes belong to
 	for node, fragment := range fragmentIds {
-		s.nodeData.AddFragment(int(node), int(fragment))
+		s.nodeData.UpdateFragment(int(node), int(fragment))
 	}
 }
 
@@ -73,9 +73,16 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 		moe = edge
 	}
 
-	// TODO: should we return all moes?
 	updatesMap := make(map[int32]int32)
-	updatesMap[int32(moe.Src)] = int32(moe.Dest)
+	if moe != nil {
+		log.Printf("selecting %v as moe", moe)
+
+		// TODO: should we return all moes?
+		srcFragment := int32(s.nodeData.fragments[int(moe.Src)])
+		trgFragment := int32(s.nodeData.fragments[int(moe.Dest)])
+		updatesMap[srcFragment] = trgFragment
+	}
+
 	update := &comms.Update{Updates: updatesMap}
 
 	return update, nil
@@ -118,13 +125,17 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	log.Printf("%d - received edges from child", s.nodeData.id)
 	s.nodeData.childReqWg.Done()
 
-	// wait until update is sent (consumer)
+	// wait until update is set (consumer of Cond)
 	s.nodeData.updateCond.L.Lock()
 	s.nodeData.updateCond.Wait()
 	s.nodeData.updateCond.L.Unlock()
 
-	log.Printf("%d - received update", s.nodeData.id)
+	// delete current store of edges and fragments
+	s.nodeData.ClearEdges()
+	s.nodeData.ClearFragments()
 
+	// propogate update down
+	log.Printf("%d - received update %v", s.nodeData.id, s.nodeData.update)
 	resp := &comms.Update{Updates: s.nodeData.update}
 
 	return resp, nil

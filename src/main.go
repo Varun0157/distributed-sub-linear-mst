@@ -22,7 +22,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 
 		node.AddEdges([]*utils.Edge{edge})
 		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
-			node.AddFragment(vertex, vertex)
+			node.UpdateFragment(vertex, vertex)
 		}
 		node.SetType(LEAF)
 
@@ -100,31 +100,43 @@ func run(graphFile string, outFile string) error {
 	}
 
 	serverWg := sync.WaitGroup{}
+	phase := 1
+	for phase < 10 {
+		log.Printf("PHASE %d\n", phase)
+
+		for _, s := range servers {
+			if s.nodeData.nodeType != LEAF {
+				continue
+			}
+			serverWg.Add(1)
+			go func() {
+				defer serverWg.Done()
+
+				update, err := s.sendEdgesUp()
+				if err != nil {
+					log.Fatalf("failed to send edges up: %v", err)
+				}
+
+				for srcFrag, trgFrag := range update.GetUpdates() {
+					for node, frag := range s.nodeData.fragments {
+						if frag != int(srcFrag) {
+							continue
+						}
+						s.nodeData.UpdateFragment(node, int(trgFrag))
+					}
+				}
+			}()
+		}
+		serverWg.Wait()
+
+		phase++
+		time.Sleep(2 * time.Second)
+	}
+
 	for _, s := range servers {
 		if s.nodeData.nodeType != LEAF {
 			continue
 		}
-		serverWg.Add(1)
-		go func() {
-			defer serverWg.Done()
-
-			update, err := s.sendEdgesUp()
-			if err != nil {
-				log.Fatalf("failed to send edges up: %v", err)
-			}
-
-			for from, to := range update.GetUpdates() {
-				if _, ok := s.nodeData.fragments[int(from)]; ok {
-					s.nodeData.AddFragment(int(from), int(to))
-				}
-			}
-		}()
-	}
-	serverWg.Wait()
-
-	time.Sleep(5 * time.Second)
-
-	for _, s := range servers {
 		log.Printf("node: %s", s.nodeData.String())
 	}
 
