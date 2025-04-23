@@ -73,7 +73,10 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 		moe = edge
 	}
 
-	update := &comms.Update{From: int32(moe.Src), To: int32(moe.Dest)}
+	// TODO: should we return all moes?
+	updatesMap := make(map[int32]int32)
+	updatesMap[int32(moe.Src)] = int32(moe.Dest)
+	update := &comms.Update{Updates: updatesMap}
 
 	return update, nil
 }
@@ -90,8 +93,10 @@ func (s *SubLinearServer) upwardPropListener() {
 			log.Fatalf("failed to send edges up: %v", error)
 		}
 
-		updateMap := make(map[int]int)
-		updateMap[int(update.GetFrom())] = int(update.GetTo())
+		updateMap := make(map[int32]int32)
+		for k, v := range update.GetUpdates() {
+			updateMap[(k)] = (v)
+		}
 		s.nodeData.setUpdate(updateMap)
 
 		for range len(s.nodeData.children) {
@@ -104,9 +109,10 @@ func (s *SubLinearServer) upwardPropListener() {
 		}
 		log.Printf("update: %v", update)
 
-		updateMap := make(map[int]int)
-		updateMap[int(update.GetFrom())] = int(update.GetTo())
-
+		updateMap := make(map[int32]int32)
+		for k, v := range update.GetUpdates() {
+			updateMap[(k)] = (v)
+		}
 		s.nodeData.setUpdate(updateMap)
 
 		// TODO: shift to sync.Cond to avoid having to do this
@@ -135,18 +141,7 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.nodeData.updateWg.Wait()
 	log.Printf("%d - received update", s.nodeData.id)
 
-	var from *int = nil
-	var to *int = nil
-	for k, v := range s.nodeData.update {
-		from = &k
-		to = &v
-	}
-
-	if from == nil || to == nil {
-		log.Fatalf("no update found")
-	}
-
-	resp := &comms.Update{From: int32(*from), To: int32(*to)}
+	resp := &comms.Update{Updates: s.nodeData.update}
 
 	return resp, nil
 }

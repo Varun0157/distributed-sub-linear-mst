@@ -113,10 +113,10 @@ func run(graphFile string, outFile string) error {
 				log.Fatalf("failed to send edges up: %v", err)
 			}
 
-			from := int(update.GetFrom())
-			to := int(update.GetTo())
-			if _, ok := s.nodeData.fragments[from]; ok {
-				s.nodeData.AddFragment(int(from), int(to))
+			for from, to := range update.GetUpdates() {
+				if _, ok := s.nodeData.fragments[int(from)]; ok {
+					s.nodeData.AddFragment(int(from), int(to))
+				}
 			}
 		}()
 	}

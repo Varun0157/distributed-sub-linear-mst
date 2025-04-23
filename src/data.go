@@ -31,7 +31,7 @@ type NodeData struct {
 	edgesMutex     sync.Mutex
 	edges          []*utils.Edge
 	updateWg       sync.WaitGroup
-	update         map[int]int
+	update         map[int32]int32
 	fragmentsMutex sync.Mutex
 	fragments      map[int]int
 
@@ -74,7 +74,7 @@ func (node *NodeData) String() string {
 		node.id, node.GetAddr(), node.nodeType, edgeData, parentData, childrenData, node.fragments)
 }
 
-func (node *NodeData) setUpdate(update map[int]int) {
+func (node *NodeData) setUpdate(update map[int32]int32) {
 	node.update = update
 }
 

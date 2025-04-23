@@ -18,7 +18,4 @@ message Edges {
   map<int32, int32> fragmentIds = 4;
 }
 
-message Update {
-  int32 from = 1;
-  int32 to = 2;
-}
+message Update { map<int32, int32> updates = 1; }
