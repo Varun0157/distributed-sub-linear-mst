@@ -99,9 +99,7 @@ func (s *SubLinearServer) upwardPropListener() {
 		}
 		s.nodeData.setUpdate(updateMap)
 
-		for range len(s.nodeData.children) {
-			s.nodeData.updateWg.Done()
-		}
+		s.nodeData.updateCond.Broadcast()
 	} else {
 		update, error := s.getMoeUpdate()
 		if error != nil {
@@ -115,10 +113,7 @@ func (s *SubLinearServer) upwardPropListener() {
 		}
 		s.nodeData.setUpdate(updateMap)
 
-		// TODO: shift to sync.Cond to avoid having to do this
-		for range len(s.nodeData.children) {
-			s.nodeData.updateWg.Done()
-		}
+		s.nodeData.updateCond.Broadcast()
 	}
 
 	// launch another listener
@@ -137,8 +132,10 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.nodeData.childReqWg.Done()
 
 	// another child requesting an update
-	s.nodeData.updateWg.Add(1)
-	s.nodeData.updateWg.Wait()
+	s.nodeData.updateCond.L.Lock()
+	s.nodeData.updateCond.Wait()
+	s.nodeData.updateCond.L.Unlock()
+
 	log.Printf("%d - received update", s.nodeData.id)
 
 	resp := &comms.Update{Updates: s.nodeData.update}

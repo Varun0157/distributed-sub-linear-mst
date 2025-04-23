@@ -30,24 +30,25 @@ type NodeData struct {
 	// dynamic with phase progression
 	edgesMutex     sync.Mutex
 	edges          []*utils.Edge
-	updateWg       sync.WaitGroup
 	update         map[int32]int32
 	fragmentsMutex sync.Mutex
 	fragments      map[int]int
 
 	// for tracking child requests
 	childReqWg sync.WaitGroup
+	updateCond sync.Cond
 }
 
 func NewNodeData(id uint64, lis net.Listener) *NodeData {
 	return &NodeData{
-		id:        id,
-		lis:       lis,
-		nodeType:  UNKNOWN,
-		edges:     []*utils.Edge{},
-		parent:    nil,
-		children:  []*NodeData{},
-		fragments: make(map[int]int),
+		id:         id,
+		lis:        lis,
+		nodeType:   UNKNOWN,
+		edges:      []*utils.Edge{},
+		parent:     nil,
+		children:   []*NodeData{},
+		fragments:  make(map[int]int),
+		updateCond: *sync.NewCond(&sync.Mutex{}),
 	}
 }
 
