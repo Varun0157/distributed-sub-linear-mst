@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"time"
 
 	utils "mst/sublinear/utils"
 )
@@ -77,55 +76,33 @@ func run(graphFile string, outFile string) error {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
 
+	serverWg := sync.WaitGroup{}
 	servers := []*SubLinearServer{}
 	for _, node := range nodes {
 		log.Printf("node: %s", node.String())
 		server, err := NewSubLinearServer(node)
 		if err != nil {
-			return fmt.Errorf("failed to create server: %v", err)
+			log.Fatalf("failed to create server: %v", err)
 		}
 
-		if len(server.nodeData.children) > 0 {
-			server.nodeData.childReqWg.Add(len(node.children))
-			go server.upwardPropListener()
-		}
+		serverWg.Add(1)
+		go func() {
+			defer serverWg.Done()
+
+			if len(server.nodeData.children) > 0 {
+				server.nodeData.childReqWg.Add(len(node.children))
+				server.nonLeafDriver()
+			} else {
+				server.leafDriver()
+			}
+
+			server.ShutDown()
+		}()
 
 		servers = append(servers, server)
 	}
 
-	serverWg := sync.WaitGroup{}
-	phase := 1
-	for phase < 10 {
-		log.Printf("PHASE %d\n", phase)
-
-		for _, s := range servers {
-			if !s.nodeData.isLeaf() {
-				continue
-			}
-			serverWg.Add(1)
-			go func() {
-				defer serverWg.Done()
-
-				update, err := s.sendEdgesUp()
-				if err != nil {
-					log.Fatalf("failed to send edges up: %v", err)
-				}
-
-				for srcFrag, trgFrag := range update.GetUpdates() {
-					for node, frag := range s.nodeData.fragments {
-						if frag != int(srcFrag) {
-							continue
-						}
-						s.nodeData.UpdateFragment(node, int(trgFrag))
-					}
-				}
-			}()
-		}
-		serverWg.Wait()
-
-		phase++
-		time.Sleep(2 * time.Second)
-	}
+	serverWg.Wait()
 
 	for _, s := range servers {
 		if !s.nodeData.isLeaf() {

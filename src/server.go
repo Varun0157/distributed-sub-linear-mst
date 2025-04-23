@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math"
 	comms "mst/sublinear/comms"
@@ -88,31 +89,65 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	return update, nil
 }
 
-func (s *SubLinearServer) upwardPropListener() {
-	// wait for all children to send data
-	s.nodeData.childReqWg.Wait()
-	log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
+// TODO: consider making this a driver for non child nodes
+// if no more children, return and shutdown outside
+func (s *SubLinearServer) nonLeafDriver() {
+	for len(s.nodeData.children) > 0 {
+		// wait for all children to send data
+		s.nodeData.childReqWg.Wait()
+		log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
 
-	// upward prop
-	update, error := func() (*comms.Update, error) {
-		if s.nodeData.parent != nil {
-			return s.sendEdgesUp()
-		} else {
-			return s.getMoeUpdate()
+		// upward prop
+		update, error := func() (*comms.Update, error) {
+			if s.nodeData.parent != nil {
+				edges, fragments := s.getEdgesToSend()
+				return s.sendEdgesUp(edges, fragments)
+			} else {
+				return s.getMoeUpdate()
+			}
+		}()
+		if error != nil {
+			log.Fatalf("failed to send edges up: %v", error)
 		}
-	}()
-	if error != nil {
-		log.Fatalf("failed to send edges up: %v", error)
+
+		s.nodeData.setUpdate(update.GetUpdates())
+
+		// wake consumers of update so they can send a response to children
+		s.nodeData.updateCond.Broadcast()
+
+		// launch another listener
+		s.nodeData.childReqWg.Add(len(s.nodeData.children))
+	}
+}
+
+func (s *SubLinearServer) leafDriver() error {
+	if !s.nodeData.isLeaf() || s.nodeData.parent == nil {
+		return fmt.Errorf("leaf driver called on non-leaf node")
 	}
 
-	s.nodeData.setUpdate(update.GetUpdates())
+	for {
+		edges, fragments := s.getEdgesToSend()
+		update, err := s.sendEdgesUp(edges, fragments)
+		if err != nil {
+			return fmt.Errorf("failed to send edges up: %v", err)
+		}
 
-	// wake consumers of update so they can send a response to children
-	s.nodeData.updateCond.Broadcast()
+		for srcFrag, trgFrag := range update.GetUpdates() {
+			for node, frag := range s.nodeData.fragments {
+				if frag != int(srcFrag) {
+					continue
+				}
+				s.nodeData.UpdateFragment(node, int(trgFrag))
+			}
+		}
 
-	// launch another listener
-	s.nodeData.childReqWg.Add(len(s.nodeData.children))
-	go s.upwardPropListener()
+		// if we did not send any edges in the last update, break
+		if len(edges) == 0 {
+			break
+		}
+	}
+
+	return nil
 }
 
 // --- RPCs ---
@@ -120,6 +155,10 @@ func (s *SubLinearServer) upwardPropListener() {
 func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*comms.Update, error) {
 	// update state with received data
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
+	if len(data.GetEdges()) < 1 && len(data.GetFragmentIds()) < 1 {
+		// remove the child from further consideration (in further rounds)
+		s.nodeData.RemoveChild(uint64(data.GetSrcId()))
+	}
 
 	// received an update from a child
 	log.Printf("%d - received edges from child", s.nodeData.id)

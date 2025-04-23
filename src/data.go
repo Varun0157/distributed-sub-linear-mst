@@ -13,6 +13,8 @@ import (
 type NodeType int
 
 type NodeData struct {
+	// TODO: make the parent only store id and addr of child
+	// 	and vice versa
 	// static after init
 	id       uint64
 	lis      net.Listener
@@ -77,6 +79,16 @@ func (node *NodeData) GetAddr() string {
 
 func (node *NodeData) SetParent(parent *NodeData) {
 	node.parent = parent
+}
+
+func (node *NodeData) RemoveChild(childId uint64) {
+	for i, child := range node.children {
+		if child.id != childId {
+			continue
+		}
+		node.children = append(node.children[:i], node.children[i+1:]...)
+		break
+	}
 }
 
 func (node *NodeData) isLeaf() bool {
