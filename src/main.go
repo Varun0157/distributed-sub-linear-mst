@@ -47,9 +47,14 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 				return nil, fmt.Errorf("failed to create parent node: %v", err)
 			}
 
-			parent.SetChildren(children)
+			childrenData := []*NodeMetaData{}
 			for _, child := range children {
-				child.SetParent(parent)
+				childrenData = append(childrenData, child.md)
+			}
+
+			parent.SetChildren(childrenData)
+			for _, child := range children {
+				child.md.SetParent(parent.md)
 			}
 			// to continue the upward level order traversal
 			queue = append(queue, parent)
@@ -89,8 +94,8 @@ func run(graphFile string, outFile string) error {
 		go func() {
 			defer serverWg.Done()
 
-			if len(server.nodeData.children) > 0 {
-				server.nodeData.childReqWg.Add(len(node.children))
+			if len(server.nodeData.md.children) > 0 {
+				server.nodeData.childReqWg.Add(len(node.md.children))
 				server.nonLeafDriver()
 			} else {
 				server.leafDriver()

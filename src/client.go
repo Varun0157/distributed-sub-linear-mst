@@ -26,10 +26,10 @@ func (s *SubLinearServer) getEdgesToSend() ([]*utils.Edge, map[int32]int32) {
 }
 
 func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]int32) (*comms.Update, error) {
-	if s.nodeData.parent == nil {
+	if s.nodeData.md.parent == nil {
 		return nil, fmt.Errorf("no parent node to send edges to")
 	}
-	receiverAddr := s.nodeData.parent.GetAddr()
+	receiverAddr := s.nodeData.md.parent.GetAddr()
 
 	conn, err := grpc.NewClient(receiverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -46,9 +46,9 @@ func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]i
 			Weight: int32(edge.Weight),
 		}
 	}
-	log.Printf("%d - sending %v edges and %v fragments to %d", s.nodeData.id, moeData, fragments, s.nodeData.parent.id)
+	log.Printf("%d - sending %v edges and %v fragments to %d", s.nodeData.md.id, moeData, fragments, s.nodeData.md.parent.id)
 
-	req := &comms.Edges{Edges: moeData, FragmentIds: fragments, SrcId: int32(s.nodeData.id)}
+	req := &comms.Edges{Edges: moeData, FragmentIds: fragments, SrcId: int32(s.nodeData.md.id)}
 
 	ctx, cancel := context.WithTimeout(context.Background(), utils.RpcTimeout())
 	defer cancel()
@@ -62,7 +62,7 @@ func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]i
 }
 
 func (s *SubLinearServer) leafDriver() error {
-	if !s.nodeData.isLeaf() || s.nodeData.parent == nil {
+	if !s.nodeData.isLeaf() || s.nodeData.md.parent == nil {
 		return fmt.Errorf("leaf driver called on non-leaf node")
 	}
 

@@ -12,14 +12,72 @@ import (
 
 type NodeType int
 
-type NodeData struct {
-	// TODO: make the parent only store id and addr of child
-	// 	and vice versa
-	// static after init
+type NodeMetaData struct {
 	id       uint64
 	lis      net.Listener
-	parent   *NodeData
-	children []*NodeData
+	parent   *NodeMetaData
+	children []*NodeMetaData
+}
+
+func NewNodeMetaData(id uint64, lis net.Listener) *NodeMetaData {
+	return &NodeMetaData{
+		id:       id,
+		lis:      lis,
+		parent:   nil,
+		children: []*NodeMetaData{},
+	}
+}
+
+func (md *NodeMetaData) String() string {
+	childrenData := []uint64{}
+	for _, child := range md.children {
+		if child == nil {
+			continue
+		}
+		childrenData = append(childrenData, child.id)
+	}
+
+	parentData := "nil"
+	if parent := md.parent; parent != nil {
+		parentData = fmt.Sprintf("%d", parent.id)
+	}
+
+	return fmt.Sprintf("{id: %d, addr: %s, children: %v, parent: %s}", md.id, md.GetAddr(), childrenData, parentData)
+}
+
+func (md *NodeMetaData) GetAddr() string {
+	return md.lis.Addr().String()
+}
+
+func (md *NodeMetaData) SetParent(parent *NodeMetaData) {
+	md.parent = parent
+}
+
+func (md *NodeMetaData) RemoveChild(childId uint64) {
+	for i, child := range md.children {
+		if child.id != childId {
+			continue
+		}
+		md.children = append(md.children[:i], md.children[i+1:]...)
+		break
+	}
+}
+
+func (node *NodeData) isLeaf() bool {
+	return len(node.md.children) == 0 && node.md.parent != nil
+}
+
+func (node *NodeData) isRoot() bool {
+	return node.md.parent == nil
+}
+
+func (node *NodeData) SetChildren(children []*NodeMetaData) {
+	node.md.children = children
+}
+
+type NodeData struct {
+	// id, addr, md of neighbours
+	md *NodeMetaData
 
 	// dynamic with phase progression
 	edgesMutex     sync.Mutex
@@ -34,11 +92,10 @@ type NodeData struct {
 }
 
 func NewNodeData(id uint64, lis net.Listener) *NodeData {
+	metadata := NewNodeMetaData(id, lis)
+
 	return &NodeData{
-		id:         id,
-		lis:        lis,
-		parent:     nil,
-		children:   []*NodeData{},
+		md:         metadata,
 		edges:      []*utils.Edge{},
 		update:     make(map[int32]int32),
 		fragments:  make(map[int]int),
@@ -47,60 +104,17 @@ func NewNodeData(id uint64, lis net.Listener) *NodeData {
 }
 
 func (node *NodeData) String() string {
-	childrenData := []uint64{}
-	for _, child := range node.children {
-		if child == nil {
-			continue
-		}
-		childrenData = append(childrenData, child.id)
-	}
-
-	parentData := "nil"
-	if parent := node.parent; parent != nil {
-		parentData = fmt.Sprintf("%d", parent.id)
-	}
-
 	edgeData := make([]utils.Edge, 0)
 	for _, edge := range node.edges {
 		edgeData = append(edgeData, *edge)
 	}
 
-	return fmt.Sprintf("{id: %d, addr: %s, edges: %v, parent: %v, children: %v, fragments: %v}",
-		node.id, node.GetAddr(), edgeData, parentData, childrenData, node.fragments)
+	return fmt.Sprintf("{metadata: %v, edges: %v, fragments: %v}",
+		node.md, edgeData, node.fragments)
 }
 
 func (node *NodeData) setUpdate(update map[int32]int32) {
 	node.update = update
-}
-
-func (node *NodeData) GetAddr() string {
-	return node.lis.Addr().String()
-}
-
-func (node *NodeData) SetParent(parent *NodeData) {
-	node.parent = parent
-}
-
-func (node *NodeData) RemoveChild(childId uint64) {
-	for i, child := range node.children {
-		if child.id != childId {
-			continue
-		}
-		node.children = append(node.children[:i], node.children[i+1:]...)
-		break
-	}
-}
-
-func (node *NodeData) isLeaf() bool {
-	return len(node.children) == 0 && node.parent != nil
-}
-
-func (node *NodeData) isRoot() bool {
-	return node.parent == nil
-}
-
-func (node *NodeData) SetChildren(children []*NodeData) {
-	node.children = children
 }
 
 func (node *NodeData) ClearEdges() {

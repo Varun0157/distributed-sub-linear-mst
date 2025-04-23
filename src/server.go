@@ -30,18 +30,18 @@ func NewSubLinearServer(nodeData *NodeData, outFile string) (*SubLinearServer, e
 	comms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 	go func() {
 		// TODO: consider removing the Fatalf and returning an error instead would involve channels and such
-		if err := s.grpcServer.Serve(s.nodeData.lis); err != nil {
-			log.Fatalf("%s - failed to serve: %v", s.nodeData.GetAddr(), err)
+		if err := s.grpcServer.Serve(s.nodeData.md.lis); err != nil {
+			log.Fatalf("%s - failed to serve: %v", s.nodeData.md.GetAddr(), err)
 		}
 	}()
-	log.Printf("%s - server started", s.nodeData.GetAddr())
+	log.Printf("%s - server started", s.nodeData.md.GetAddr())
 
 	return s, nil
 }
 
 func (s *SubLinearServer) ShutDown() {
 	s.grpcServer.GracefulStop()
-	log.Printf("%s - server stopped", s.nodeData.GetAddr())
+	log.Printf("%s - server stopped", s.nodeData.md.GetAddr())
 }
 
 func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds map[int32]int32) {
@@ -85,14 +85,14 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 func (s *SubLinearServer) nonLeafDriver() {
 	// while we have children
 
-	for len(s.nodeData.children) > 0 {
+	for len(s.nodeData.md.children) > 0 {
 		// wait for all children to send data
 		s.nodeData.childReqWg.Wait()
 		log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
 
 		// upward prop
 		update, error := func() (*comms.Update, error) {
-			if s.nodeData.parent != nil {
+			if s.nodeData.md.parent != nil {
 				edges, fragments := s.getEdgesToSend()
 				return s.sendEdgesUp(edges, fragments)
 			} else {
@@ -109,7 +109,7 @@ func (s *SubLinearServer) nonLeafDriver() {
 		s.nodeData.updateCond.Broadcast()
 
 		// launch another listener
-		s.nodeData.childReqWg.Add(len(s.nodeData.children))
+		s.nodeData.childReqWg.Add(len(s.nodeData.md.children))
 	}
 }
 
@@ -120,11 +120,11 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
 	if len(data.GetEdges()) < 1 && len(data.GetFragmentIds()) < 1 {
 		// remove the child from further consideration (in further rounds)
-		s.nodeData.RemoveChild(uint64(data.GetSrcId()))
+		s.nodeData.md.RemoveChild(uint64(data.GetSrcId()))
 	}
 
 	// received an update from a child
-	log.Printf("%d - received edges from child", s.nodeData.id)
+	log.Printf("%d - received edges from child", s.nodeData.md.id)
 	s.nodeData.childReqWg.Done()
 
 	// wait until update is set (consumer of Cond)
@@ -137,7 +137,7 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.nodeData.ClearFragments()
 
 	// propogate update down
-	log.Printf("%d - received update %v", s.nodeData.id, s.nodeData.update)
+	log.Printf("%d - received update %v", s.nodeData.md.id, s.nodeData.update)
 	resp := &comms.Update{Updates: s.nodeData.update}
 
 	return resp, nil
