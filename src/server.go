@@ -48,9 +48,9 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 	// add edges from request
 	edges := []*utils.Edge{}
 	for _, edgeData := range edgeData {
-		src := int(edgeData.GetSrc())
-		dest := int(edgeData.GetDest())
-		weight := int(edgeData.GetWeight())
+		src := edgeData.GetSrc()
+		dest := edgeData.GetDest()
+		weight := edgeData.GetWeight()
 
 		edge := utils.NewEdge(src, dest, weight)
 		edges = append(edges, edge)
@@ -59,7 +59,7 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 
 	// mark the fragments the nodes belong to
 	for node, fragment := range fragmentIds {
-		s.nodeData.UpdateFragment(int(node), int(fragment))
+		s.nodeData.UpdateFragment(node, fragment)
 	}
 }
 
@@ -72,8 +72,8 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	updatesMap := make(map[int32]int32)
 
 	for _, edge := range moes {
-		srcFragment := int32(s.nodeData.fragments[int(edge.Src)])
-		trgFragment := int32(s.nodeData.fragments[int(edge.Dest)])
+		srcFragment := int32(s.nodeData.fragments[edge.Src])
+		trgFragment := int32(s.nodeData.fragments[edge.Dest])
 		updatesMap[srcFragment] = trgFragment
 	}
 
@@ -84,7 +84,6 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 
 func (s *SubLinearServer) nonLeafDriver() {
 	// while we have children
-
 	for len(s.nodeData.md.children) > 0 {
 		// wait for all children to send data
 		s.nodeData.childReqWg.Wait()
@@ -113,14 +112,14 @@ func (s *SubLinearServer) nonLeafDriver() {
 	}
 }
 
-// --- RPCs ---
+// --- RPC ---
 
 func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*comms.Update, error) {
 	// update state with received data
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
 	if len(data.GetEdges()) < 1 && len(data.GetFragmentIds()) < 1 {
 		// remove the child from further consideration (in further rounds)
-		s.nodeData.md.RemoveChild(uint64(data.GetSrcId()))
+		s.nodeData.md.RemoveChild(data.GetSrcId())
 	}
 
 	// received an update from a child

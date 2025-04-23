@@ -1,12 +1,12 @@
 package utils
 
 type EdgeTarget struct {
-	Dest   int
-	Weight int
+	Dest   int32
+	Weight int32
 }
 
-func CreateAdjacencyList(edges []*Edge) map[int][]EdgeTarget {
-	adjacencyList := make(map[int][]EdgeTarget)
+func CreateAdjacencyList(edges []*Edge) map[int32][]EdgeTarget {
+	adjacencyList := make(map[int32][]EdgeTarget)
 	for _, edge := range edges {
 		adjacencyList[edge.Src] = append(adjacencyList[edge.Src], EdgeTarget{Dest: edge.Dest, Weight: edge.Weight})
 	}
@@ -14,7 +14,7 @@ func CreateAdjacencyList(edges []*Edge) map[int][]EdgeTarget {
 	return adjacencyList
 }
 
-func getMinOutgoingEdge(src int, targets []EdgeTarget, fragmentIds map[int]int) *Edge {
+func getMinOutgoingEdge(src int32, targets []EdgeTarget, fragmentIds map[int32]int32) *Edge {
 	var minEdge *Edge = nil
 
 	for _, target := range targets {
@@ -32,8 +32,8 @@ func getMinOutgoingEdge(src int, targets []EdgeTarget, fragmentIds map[int]int) 
 
 // returns the minimum outgoing edge for each fragment given the current
 // graph and fragment ids
-func GetMoEs(adjacencyList map[int][]EdgeTarget, fragmentIds map[int]int) []*Edge {
-	fragToMoe := make(map[int]*Edge)
+func GetMoEs(adjacencyList map[int32][]EdgeTarget, fragmentIds map[int32]int32) []*Edge {
+	fragToMoe := make(map[int32]*Edge)
 	for src, targets := range adjacencyList {
 		minEdge := getMinOutgoingEdge(src, targets, fragmentIds)
 		if minEdge == nil {
@@ -54,7 +54,7 @@ func GetMoEs(adjacencyList map[int][]EdgeTarget, fragmentIds map[int]int) []*Edg
 	return moes
 }
 
-func GetEdgeList(adjacencyList map[int][]EdgeTarget) []*Edge {
+func GetEdgeList(adjacencyList map[int32][]EdgeTarget) []*Edge {
 	edges := make([]*Edge, 0)
 	for src, targets := range adjacencyList {
 		for _, target := range targets {

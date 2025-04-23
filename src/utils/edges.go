@@ -11,16 +11,16 @@ import (
 )
 
 type Edge struct {
-	Src    int
-	Dest   int
-	Weight int
+	Src    int32
+	Dest   int32
+	Weight int32
 }
 
 func (Edge *Edge) String() string {
 	return fmt.Sprintf("src: %d, dest: %d, weight: %d", Edge.Src, Edge.Dest, Edge.Weight)
 }
 
-func NewEdge(src, dest, weight int) *Edge {
+func NewEdge(src, dest, weight int32) *Edge {
 	return &Edge{
 		Src:    src,
 		Dest:   dest,
@@ -29,7 +29,7 @@ func NewEdge(src, dest, weight int) *Edge {
 }
 
 func GetNumberOfVertices(edges []Edge) (int, error) {
-	uniqueVertices := make(map[int]bool)
+	uniqueVertices := make(map[int32]bool)
 
 	for _, edge := range edges {
 		uniqueVertices[edge.Src] = true
@@ -76,7 +76,7 @@ func ReadGraph(fileName string) ([]*Edge, error) {
 			return nil, fmt.Errorf("invalid line: %s", scanner.Text())
 		}
 
-		edges = append(edges, NewEdge(src, dest, weight))
+		edges = append(edges, NewEdge(int32(src), int32(dest), int32(weight)))
 	}
 
 	if err = scanner.Err(); err != nil {
@@ -103,10 +103,8 @@ func WriteGraph(fileName string, edges []*Edge) error {
 	}
 	defer file.Close()
 
-	totalWeight := 0
 	writer := bufio.NewWriter(file)
 	for _, edge := range edges {
-		totalWeight += edge.Weight
 		_, err := fmt.Fprintf(writer, "%d %d %d\n", edge.Src, edge.Dest, edge.Weight)
 		if err != nil {
 			return err

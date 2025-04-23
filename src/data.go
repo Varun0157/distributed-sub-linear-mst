@@ -10,16 +10,14 @@ import (
 	utils "mst/sublinear/utils"
 )
 
-type NodeType int
-
 type NodeMetaData struct {
-	id       uint64
+	id       int32
 	lis      net.Listener
 	parent   *NodeMetaData
 	children []*NodeMetaData
 }
 
-func NewNodeMetaData(id uint64, lis net.Listener) *NodeMetaData {
+func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
 	return &NodeMetaData{
 		id:       id,
 		lis:      lis,
@@ -29,7 +27,7 @@ func NewNodeMetaData(id uint64, lis net.Listener) *NodeMetaData {
 }
 
 func (md *NodeMetaData) String() string {
-	childrenData := []uint64{}
+	childrenData := []int32{}
 	for _, child := range md.children {
 		if child == nil {
 			continue
@@ -53,7 +51,7 @@ func (md *NodeMetaData) SetParent(parent *NodeMetaData) {
 	md.parent = parent
 }
 
-func (md *NodeMetaData) RemoveChild(childId uint64) {
+func (md *NodeMetaData) RemoveChild(childId int32) {
 	for i, child := range md.children {
 		if child.id != childId {
 			continue
@@ -79,26 +77,25 @@ type NodeData struct {
 	// id, addr, md of neighbours
 	md *NodeMetaData
 
-	// dynamic with phase progression
 	edgesMutex     sync.Mutex
 	edges          []*utils.Edge
 	update         map[int32]int32
 	fragmentsMutex sync.Mutex
-	fragments      map[int]int
+	fragments      map[int32]int32
 
 	// for tracking child requests
 	childReqWg sync.WaitGroup
 	updateCond sync.Cond
 }
 
-func NewNodeData(id uint64, lis net.Listener) *NodeData {
+func NewNodeData(id int32, lis net.Listener) *NodeData {
 	metadata := NewNodeMetaData(id, lis)
 
 	return &NodeData{
 		md:         metadata,
 		edges:      []*utils.Edge{},
 		update:     make(map[int32]int32),
-		fragments:  make(map[int]int),
+		fragments:  make(map[int32]int32),
 		updateCond: *sync.NewCond(&sync.Mutex{}),
 	}
 }
@@ -135,10 +132,10 @@ func (node *NodeData) ClearFragments() {
 	node.fragmentsMutex.Lock()
 	defer node.fragmentsMutex.Unlock()
 
-	node.fragments = make(map[int]int)
+	node.fragments = make(map[int32]int32)
 }
 
-func (node *NodeData) UpdateFragment(vertex, id int) {
+func (node *NodeData) UpdateFragment(vertex, id int32) {
 	node.fragmentsMutex.Lock()
 	defer node.fragmentsMutex.Unlock()
 
@@ -147,7 +144,7 @@ func (node *NodeData) UpdateFragment(vertex, id int) {
 
 type NodeDataGenerator struct {
 	idCounterMutex sync.Mutex
-	idCounter      uint64
+	idCounter      int32
 }
 
 func NewNodeDataGenerator() *NodeDataGenerator {
@@ -173,7 +170,7 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
-func (nodeGenerator *NodeDataGenerator) getNextId() (uint64, error) {
+func (nodeGenerator *NodeDataGenerator) getNextId() (int32, error) {
 	nodeGenerator.idCounterMutex.Lock()
 	defer nodeGenerator.idCounterMutex.Unlock()
 

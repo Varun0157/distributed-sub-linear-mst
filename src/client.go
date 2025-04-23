@@ -17,8 +17,8 @@ func (s *SubLinearServer) getEdgesToSend() ([]*utils.Edge, map[int32]int32) {
 
 	fragments := make(map[int32]int32)
 	for _, edge := range moes {
-		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
-			fragments[int32(vertex)] = int32(s.nodeData.fragments[vertex])
+		for _, vertex := range []int32{edge.Src, edge.Dest} {
+			fragments[vertex] = s.nodeData.fragments[vertex]
 		}
 	}
 
@@ -76,10 +76,10 @@ func (s *SubLinearServer) leafDriver() error {
 		// update state of leaf based on update
 		for srcFrag, trgFrag := range update.GetUpdates() {
 			for node, frag := range s.nodeData.fragments {
-				if frag != int(srcFrag) {
+				if frag != srcFrag {
 					continue
 				}
-				s.nodeData.UpdateFragment(node, int(trgFrag))
+				s.nodeData.UpdateFragment(node, trgFrag)
 			}
 		}
 
