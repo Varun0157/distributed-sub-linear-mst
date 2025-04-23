@@ -53,6 +53,15 @@ func getMaxVertex(edges []Edge) (int, error) {
 	return maxVertex, nil
 }
 
+func GetWeight(edges []*Edge) int {
+	weight := 0
+	for _, edge := range edges {
+		weight += int(edge.Weight)
+	}
+
+	return weight
+}
+
 func ReadGraph(fileName string) ([]*Edge, error) {
 	file, err := os.Open(fileName)
 	if err != nil {

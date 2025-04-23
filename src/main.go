@@ -67,9 +67,9 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	return nodes, nil
 }
 
-func run(graphFile string, outFile string) error {
+func calcMST(graphFile string, outFile string) error {
 	log.Printf("graph file: %s", graphFile)
-	log.Printf("out file: %s", outFile)
+	log.Printf("out   file: %s", outFile)
 
 	edges, err := utils.ReadGraph(graphFile)
 	if err != nil {
@@ -125,10 +125,15 @@ func main() {
 	infile := os.Args[1]
 	outfile := os.Args[2]
 
-	err := run(infile, outfile)
+	err := calcMST(infile, outfile)
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}
 
-	log.Println("[INFO] done")
+	edges, err := utils.ReadGraph(outfile)
+	if err != nil {
+		log.Fatalf("[ERROR] failed to read output graph: %v", err)
+	}
+	weight := utils.GetWeight(edges)
+	log.Printf("[INFO] weight of the graph: %d", weight)
 }
