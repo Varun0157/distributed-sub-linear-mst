@@ -89,8 +89,6 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	return update, nil
 }
 
-// TODO: consider making this a driver for non child nodes
-// if no more children, return and shutdown outside
 func (s *SubLinearServer) nonLeafDriver() {
 	for len(s.nodeData.children) > 0 {
 		// wait for all children to send data
@@ -118,36 +116,6 @@ func (s *SubLinearServer) nonLeafDriver() {
 		// launch another listener
 		s.nodeData.childReqWg.Add(len(s.nodeData.children))
 	}
-}
-
-func (s *SubLinearServer) leafDriver() error {
-	if !s.nodeData.isLeaf() || s.nodeData.parent == nil {
-		return fmt.Errorf("leaf driver called on non-leaf node")
-	}
-
-	for {
-		edges, fragments := s.getEdgesToSend()
-		update, err := s.sendEdgesUp(edges, fragments)
-		if err != nil {
-			return fmt.Errorf("failed to send edges up: %v", err)
-		}
-
-		for srcFrag, trgFrag := range update.GetUpdates() {
-			for node, frag := range s.nodeData.fragments {
-				if frag != int(srcFrag) {
-					continue
-				}
-				s.nodeData.UpdateFragment(node, int(trgFrag))
-			}
-		}
-
-		// if we did not send any edges in the last update, break
-		if len(edges) == 0 {
-			break
-		}
-	}
-
-	return nil
 }
 
 // --- RPCs ---

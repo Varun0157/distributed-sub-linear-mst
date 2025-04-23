@@ -60,3 +60,34 @@ func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]i
 
 	return update, nil
 }
+
+func (s *SubLinearServer) leafDriver() error {
+	if !s.nodeData.isLeaf() || s.nodeData.parent == nil {
+		return fmt.Errorf("leaf driver called on non-leaf node")
+	}
+
+	for {
+		edges, fragments := s.getEdgesToSend()
+		update, err := s.sendEdgesUp(edges, fragments)
+		if err != nil {
+			return fmt.Errorf("failed to send edges up: %v", err)
+		}
+
+		// update state of leaf based on update
+		for srcFrag, trgFrag := range update.GetUpdates() {
+			for node, frag := range s.nodeData.fragments {
+				if frag != int(srcFrag) {
+					continue
+				}
+				s.nodeData.UpdateFragment(node, int(trgFrag))
+			}
+		}
+
+		// if we did not send any edges in the last update, break
+		if len(edges) == 0 {
+			break
+		}
+	}
+
+	return nil
+}
