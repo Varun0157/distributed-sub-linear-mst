@@ -14,6 +14,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
 
 	nodes := []*NodeData{}
+	// leaf nodes
 	for _, edge := range edges {
 		node, err := nodeGenerator.CreateNode()
 		if err != nil {
@@ -24,7 +25,6 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 		for _, vertex := range []int{int(edge.Src), int(edge.Dest)} {
 			node.UpdateFragment(vertex, vertex)
 		}
-		node.SetType(LEAF)
 
 		nodes = append(nodes, node)
 	}
@@ -48,7 +48,6 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 				return nil, fmt.Errorf("failed to create parent node: %v", err)
 			}
 
-			parent.SetType(INTERMEDIATE)
 			parent.SetChildren(children)
 			for _, child := range children {
 				child.SetParent(parent)
@@ -59,11 +58,6 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 			// add the node to the list
 			nodes = append(nodes, parent)
 		}
-	}
-
-	if len(queue) > 0 {
-		root := queue[0]
-		root.SetType(ROOT)
 	}
 
 	return nodes, nil
@@ -105,7 +99,7 @@ func run(graphFile string, outFile string) error {
 		log.Printf("PHASE %d\n", phase)
 
 		for _, s := range servers {
-			if s.nodeData.nodeType != LEAF {
+			if !s.nodeData.isLeaf() {
 				continue
 			}
 			serverWg.Add(1)
@@ -134,7 +128,7 @@ func run(graphFile string, outFile string) error {
 	}
 
 	for _, s := range servers {
-		if s.nodeData.nodeType != LEAF {
+		if !s.nodeData.isLeaf() {
 			continue
 		}
 		log.Printf("node: %s", s.nodeData.String())

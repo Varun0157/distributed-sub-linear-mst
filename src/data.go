@@ -12,18 +12,10 @@ import (
 
 type NodeType int
 
-const (
-	ROOT NodeType = iota
-	LEAF
-	INTERMEDIATE
-	UNKNOWN
-)
-
 type NodeData struct {
 	// static after init
 	id       uint64
 	lis      net.Listener
-	nodeType NodeType
 	parent   *NodeData
 	children []*NodeData
 
@@ -43,7 +35,6 @@ func NewNodeData(id uint64, lis net.Listener) *NodeData {
 	return &NodeData{
 		id:         id,
 		lis:        lis,
-		nodeType:   UNKNOWN,
 		parent:     nil,
 		children:   []*NodeData{},
 		edges:      []*utils.Edge{},
@@ -72,8 +63,8 @@ func (node *NodeData) String() string {
 		edgeData = append(edgeData, *edge)
 	}
 
-	return fmt.Sprintf("{id: %d, addr: %s, type: %d, edges: %v, parent: %v, children: %v, fragments: %v}",
-		node.id, node.GetAddr(), node.nodeType, edgeData, parentData, childrenData, node.fragments)
+	return fmt.Sprintf("{id: %d, addr: %s, edges: %v, parent: %v, children: %v, fragments: %v}",
+		node.id, node.GetAddr(), edgeData, parentData, childrenData, node.fragments)
 }
 
 func (node *NodeData) setUpdate(update map[int32]int32) {
@@ -84,12 +75,16 @@ func (node *NodeData) GetAddr() string {
 	return node.lis.Addr().String()
 }
 
-func (node *NodeData) SetType(nodeType NodeType) {
-	node.nodeType = nodeType
-}
-
 func (node *NodeData) SetParent(parent *NodeData) {
 	node.parent = parent
+}
+
+func (node *NodeData) isLeaf() bool {
+	return len(node.children) == 0 && node.parent != nil
+}
+
+func (node *NodeData) isRoot() bool {
+	return node.parent == nil
 }
 
 func (node *NodeData) SetChildren(children []*NodeData) {
