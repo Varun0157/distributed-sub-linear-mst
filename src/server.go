@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math"
 	comms "mst/sublinear/comms"
@@ -65,22 +64,13 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	adjacencyList := utils.CreateAdjacencyList(s.nodeData.edges)
 	moes := utils.GetMoEs(adjacencyList, s.nodeData.fragments)
-
-	var moe *utils.Edge = nil
-	for _, edge := range moes {
-		if moe != nil && moe.Weight < edge.Weight {
-			continue
-		}
-		moe = edge
-	}
+	log.Printf("-----> selecting %v as moes", moes)
 
 	updatesMap := make(map[int32]int32)
-	if moe != nil {
-		log.Printf("selecting %v as moe", moe)
 
-		// TODO: should we return all moes?
-		srcFragment := int32(s.nodeData.fragments[int(moe.Src)])
-		trgFragment := int32(s.nodeData.fragments[int(moe.Dest)])
+	for _, edge := range moes {
+		srcFragment := int32(s.nodeData.fragments[int(edge.Src)])
+		trgFragment := int32(s.nodeData.fragments[int(edge.Dest)])
 		updatesMap[srcFragment] = trgFragment
 	}
 
