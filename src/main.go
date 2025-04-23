@@ -52,7 +52,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 				childrenData = append(childrenData, child.md)
 			}
 
-			parent.SetChildren(childrenData)
+			parent.md.SetChildren(childrenData)
 			for _, child := range children {
 				child.md.SetParent(parent.md)
 			}
@@ -82,39 +82,36 @@ func run(graphFile string, outFile string) error {
 	}
 
 	serverWg := sync.WaitGroup{}
-	servers := []*SubLinearServer{}
+
 	for _, node := range nodes {
+		// bind the server to a port
 		log.Printf("node: %s", node.String())
 		server, err := NewSubLinearServer(node, outFile)
 		if err != nil {
 			log.Fatalf("failed to create server: %v", err)
 		}
 
+		// launch the server
 		serverWg.Add(1)
 		go func() {
 			defer serverWg.Done()
 
-			if len(server.nodeData.md.children) > 0 {
-				server.nodeData.childReqWg.Add(len(node.md.children))
-				server.nonLeafDriver()
-			} else {
-				server.leafDriver()
+			err := func() error {
+				if server.nodeData.md.isLeaf() {
+					return server.leafDriver()
+				} else {
+					return server.nonLeafDriver()
+				}
+			}()
+			if err != nil {
+				log.Fatalf("failed to run server: %v", err)
 			}
 
 			server.ShutDown()
 		}()
-
-		servers = append(servers, server)
 	}
 
 	serverWg.Wait()
-
-	for _, s := range servers {
-		if !s.nodeData.isLeaf() {
-			continue
-		}
-		log.Printf("node: %s", s.nodeData.String())
-	}
 
 	return nil
 }

@@ -62,7 +62,7 @@ func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]i
 }
 
 func (s *SubLinearServer) leafDriver() error {
-	if !s.nodeData.isLeaf() || s.nodeData.md.parent == nil {
+	if !s.nodeData.md.isLeaf() || s.nodeData.md.parent == nil {
 		return fmt.Errorf("leaf driver called on non-leaf node")
 	}
 

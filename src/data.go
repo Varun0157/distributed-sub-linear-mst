@@ -61,16 +61,16 @@ func (md *NodeMetaData) RemoveChild(childId int32) {
 	}
 }
 
-func (node *NodeData) isLeaf() bool {
-	return len(node.md.children) == 0 && node.md.parent != nil
+func (md *NodeMetaData) isLeaf() bool {
+	return len(md.children) == 0 && md.parent != nil
 }
 
-func (node *NodeData) isRoot() bool {
-	return node.md.parent == nil
+func (md *NodeMetaData) isRoot() bool {
+	return md.parent == nil
 }
 
-func (node *NodeData) SetChildren(children []*NodeMetaData) {
-	node.md.children = children
+func (md *NodeMetaData) SetChildren(children []*NodeMetaData) {
+	md.children = children
 }
 
 type NodeData struct {

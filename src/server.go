@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math"
 	comms "mst/sublinear/comms"
@@ -82,11 +83,13 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	return update, nil
 }
 
-func (s *SubLinearServer) nonLeafDriver() {
+func (s *SubLinearServer) nonLeafDriver() error {
 	// while we have children
 	for len(s.nodeData.md.children) > 0 {
-		// wait for all children to send data
+		// wait for the moes from all the children
+		s.nodeData.childReqWg.Add(len(s.nodeData.md.children))
 		s.nodeData.childReqWg.Wait()
+
 		log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
 
 		// upward prop
@@ -99,17 +102,15 @@ func (s *SubLinearServer) nonLeafDriver() {
 			}
 		}()
 		if error != nil {
-			log.Fatalf("failed to send edges up: %v", error)
+			return fmt.Errorf("failed to send edges up: %v", error)
 		}
 
+		// set the update, and wake the consumers (handlers of RPC calls from children)
 		s.nodeData.setUpdate(update.GetUpdates())
-
-		// wake consumers of update so they can send a response to children
 		s.nodeData.updateCond.Broadcast()
-
-		// launch another listener
-		s.nodeData.childReqWg.Add(len(s.nodeData.md.children))
 	}
+
+	return nil
 }
 
 // --- RPC ---
