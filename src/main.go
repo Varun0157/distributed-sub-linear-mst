@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"sync"
 
 	utils "mst/sublinear/utils"
@@ -81,8 +82,11 @@ func calcMST(graphFile string, outFile string) error {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
 
-	serverWg := sync.WaitGroup{}
+	// NOTE: we start-up the servers in ROOT to LEAF order to ensure
+	// the servers are ready to receive messages
+	slices.Reverse(nodes)
 
+	serverWg := sync.WaitGroup{}
 	for _, node := range nodes {
 		// bind the server to a port
 		log.Printf("node: %s", node.String())
