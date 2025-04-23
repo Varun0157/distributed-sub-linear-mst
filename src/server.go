@@ -13,15 +13,17 @@ import (
 type SubLinearServer struct {
 	receivedCount int // during upward propogation, number of children we received edges from
 	nodeData      *NodeData
+	outFile       string
 
 	grpcServer *grpc.Server
 	comms.UnimplementedEdgeDataServiceServer
 }
 
-func NewSubLinearServer(nodeData *NodeData) (*SubLinearServer, error) {
+func NewSubLinearServer(nodeData *NodeData, outFile string) (*SubLinearServer, error) {
 	s := &SubLinearServer{
 		receivedCount: 0,
 		nodeData:      nodeData,
+		outFile:       outFile,
 		grpcServer:    grpc.NewServer(grpc.MaxSendMsgSize(math.MaxInt64), grpc.MaxRecvMsgSize(math.MaxInt64)),
 	}
 
@@ -65,6 +67,7 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	adjacencyList := utils.CreateAdjacencyList(s.nodeData.edges)
 	moes := utils.GetMoEs(adjacencyList, s.nodeData.fragments)
 	log.Printf("-----> selecting %v as moes", moes)
+	utils.WriteGraph(s.outFile, moes)
 
 	updatesMap := make(map[int32]int32)
 
@@ -80,6 +83,8 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 }
 
 func (s *SubLinearServer) nonLeafDriver() {
+	// while we have children
+
 	for len(s.nodeData.children) > 0 {
 		// wait for all children to send data
 		s.nodeData.childReqWg.Wait()

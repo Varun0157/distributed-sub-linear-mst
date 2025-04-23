@@ -86,7 +86,7 @@ func ReadGraph(fileName string) ([]*Edge, error) {
 	return edges, nil
 }
 
-func SortEdges(edges []Edge) {
+func SortEdges(edges []*Edge) {
 	sort.Slice(edges, func(i, j int) bool {
 		return (edges[i].Weight < edges[j].Weight) ||
 			(edges[i].Weight == edges[j].Weight && edges[i].Src < edges[j].Src) ||
@@ -94,10 +94,10 @@ func SortEdges(edges []Edge) {
 	})
 }
 
-func WriteGraph(fileName string, edges []Edge) error {
+func WriteGraph(fileName string, edges []*Edge) error {
 	SortEdges(edges)
 
-	file, err := os.Create(fileName)
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -111,10 +111,6 @@ func WriteGraph(fileName string, edges []Edge) error {
 		if err != nil {
 			return err
 		}
-	}
-	_, err = fmt.Fprintf(writer, "weight: %d\n", totalWeight)
-	if err != nil {
-		return err
 	}
 
 	return writer.Flush()

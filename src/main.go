@@ -80,7 +80,7 @@ func run(graphFile string, outFile string) error {
 	servers := []*SubLinearServer{}
 	for _, node := range nodes {
 		log.Printf("node: %s", node.String())
-		server, err := NewSubLinearServer(node)
+		server, err := NewSubLinearServer(node, outFile)
 		if err != nil {
 			log.Fatalf("failed to create server: %v", err)
 		}
