@@ -129,4 +129,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}
+
+	log.Println("[INFO] done")
 }

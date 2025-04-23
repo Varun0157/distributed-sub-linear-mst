@@ -30,7 +30,7 @@ func NewSubLinearServer(nodeData *NodeData, outFile string) (*SubLinearServer, e
 
 	comms.RegisterEdgeDataServiceServer(s.grpcServer, s)
 	go func() {
-		// TODO: consider removing the Fatalf and returning an error instead would involve channels and such
+		// TODO: consider removing the Fatalf and returning an error instead (would involve channels and such)
 		if err := s.grpcServer.Serve(s.nodeData.md.lis); err != nil {
 			log.Fatalf("%s - failed to serve: %v", s.nodeData.md.GetAddr(), err)
 		}
