@@ -120,6 +120,22 @@ func calcMST(graphFile string, outFile string) error {
 	return nil
 }
 
+func stats(infile, outfile string) {
+	graph, err := utils.ReadGraph(infile)
+	if err != nil {
+		log.Fatalf("[ERROR] failed to read input graph: %v", err)
+	}
+	v, e, w := utils.GetStats(graph)
+	log.Printf("[INFO] graph ->  %d verts, %d edges ,%d weight", v, e, w)
+
+	mst, err := utils.ReadGraph(outfile)
+	if err != nil {
+		log.Fatalf("[ERROR] failed to read output graph: %v", err)
+	}
+	v, e, w = utils.GetStats(mst)
+	log.Printf("[INFO] mst   ->  %d verts, %d edges ,%d weight", v, e, w)
+}
+
 func main() {
 	if len(os.Args) != 3 {
 		fmt.Println("usage: go run *.go <infile> <outfile>")
@@ -133,11 +149,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}
+	log.Println("[INFO] finished running")
 
-	edges, err := utils.ReadGraph(outfile)
-	if err != nil {
-		log.Fatalf("[ERROR] failed to read output graph: %v", err)
-	}
-	weight := utils.GetWeight(edges)
-	log.Printf("[INFO] weight of the graph: %d", weight)
+	stats(infile, outfile)
 }

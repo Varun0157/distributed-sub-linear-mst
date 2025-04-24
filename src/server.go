@@ -7,6 +7,7 @@ import (
 	"math"
 	comms "mst/sublinear/comms"
 	utils "mst/sublinear/utils"
+	"slices"
 
 	"google.golang.org/grpc"
 )
@@ -67,15 +68,30 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	adjacencyList := utils.CreateAdjacencyList(s.nodeData.edges)
 	moes := utils.GetMoEs(adjacencyList, s.nodeData.fragments)
-	log.Printf("-----> selecting %v as moes", moes)
-	utils.WriteGraph(s.outFile, moes)
+	log.Printf("-----> %v are moes", moes)
 
 	updatesMap := make(map[int32]int32)
 
 	for _, edge := range moes {
 		srcFragment := int32(s.nodeData.fragments[edge.Src])
 		trgFragment := int32(s.nodeData.fragments[edge.Dest])
+
+		// until the introduction of red-blue randomness
+		newFrags := func() bool {
+			for src, trg := range updatesMap {
+				nodes := []int32{srcFragment, trgFragment}
+				if slices.Contains(nodes, src) || slices.Contains(nodes, trg) {
+					return false
+				}
+			}
+			return true
+		}()
+		if !newFrags {
+			continue
+		}
+
 		updatesMap[srcFragment] = trgFragment
+		utils.WriteGraph(s.outFile, []*utils.Edge{edge})
 	}
 
 	update := &comms.Update{Updates: updatesMap}
@@ -105,7 +121,11 @@ func (s *SubLinearServer) nonLeafDriver() error {
 			return fmt.Errorf("failed to send edges up: %v", error)
 		}
 
-		// set the update, and wake the consumers (handlers of RPC calls from children)
+		// delete current store of edges and fragments
+		s.nodeData.ClearEdges()
+		s.nodeData.ClearFragments()
+
+		// set the update wake the consumers (handlers of RPC calls from children)
 		s.nodeData.setUpdate(update.GetUpdates())
 		s.nodeData.updateCond.Broadcast()
 	}
@@ -118,8 +138,9 @@ func (s *SubLinearServer) nonLeafDriver() error {
 func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*comms.Update, error) {
 	// update state with received data
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
+
+	// if th child no longer has moes, remove from further consideration (in further rounds)
 	if len(data.GetEdges()) < 1 && len(data.GetFragmentIds()) < 1 {
-		// remove the child from further consideration (in further rounds)
 		s.nodeData.md.RemoveChild(data.GetSrcId())
 	}
 
@@ -131,10 +152,6 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.nodeData.updateCond.L.Lock()
 	s.nodeData.updateCond.Wait()
 	s.nodeData.updateCond.L.Unlock()
-
-	// delete current store of edges and fragments
-	s.nodeData.ClearEdges()
-	s.nodeData.ClearFragments()
 
 	// propogate update down
 	log.Printf("%d - received update %v", s.nodeData.md.id, s.nodeData.update)

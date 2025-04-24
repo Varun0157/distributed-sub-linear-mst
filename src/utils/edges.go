@@ -53,13 +53,19 @@ func getMaxVertex(edges []Edge) (int, error) {
 	return maxVertex, nil
 }
 
-func GetWeight(edges []*Edge) int {
+func GetStats(edges []*Edge) (int, int, int) {
+	uniqueVertices := make(map[int32]bool)
 	weight := 0
 	for _, edge := range edges {
+		for _, vertex := range []int32{edge.Src, edge.Dest} {
+			uniqueVertices[vertex] = true
+		}
 		weight += int(edge.Weight)
 	}
 
-	return weight
+	numVertices := len(uniqueVertices)
+	numEdges := len(edges)
+	return numVertices, numEdges, weight
 }
 
 func ReadGraph(fileName string) ([]*Edge, error) {
