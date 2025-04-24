@@ -7,8 +7,8 @@ service EdgeDataService {
 }
 
 message EdgeData {
-  int32 src = 1;
-  int32 dest = 2;
+  int32 u = 1;
+  int32 v = 2;
   int32 weight = 3;
 }
 

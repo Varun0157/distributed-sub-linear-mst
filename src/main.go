@@ -22,7 +22,7 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 		}
 
 		node.AddEdges([]*utils.Edge{edge})
-		for _, vertex := range []int32{edge.Src, edge.Dest} {
+		for _, vertex := range []int32{edge.U, edge.V} {
 			node.UpdateFragment(vertex, vertex)
 		}
 

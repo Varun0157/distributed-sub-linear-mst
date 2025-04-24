@@ -50,8 +50,8 @@ func (s *SubLinearServer) updateState(edgeData []*comms.EdgeData, fragmentIds ma
 	// add edges from request
 	edges := []*utils.Edge{}
 	for _, edgeData := range edgeData {
-		src := edgeData.GetSrc()
-		dest := edgeData.GetDest()
+		src := edgeData.GetU()
+		dest := edgeData.GetV()
 		weight := edgeData.GetWeight()
 
 		edge := utils.NewEdge(src, dest, weight)
@@ -73,8 +73,8 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 	updatesMap := make(map[int32]int32)
 
 	for _, edge := range moes {
-		srcFragment := int32(s.nodeData.fragments[edge.Src])
-		trgFragment := int32(s.nodeData.fragments[edge.Dest])
+		srcFragment := int32(s.nodeData.fragments[edge.U])
+		trgFragment := int32(s.nodeData.fragments[edge.V])
 
 		// until the introduction of red-blue randomness
 		newFrags := func() bool {

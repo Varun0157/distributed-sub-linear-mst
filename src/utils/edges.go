@@ -11,19 +11,19 @@ import (
 )
 
 type Edge struct {
-	Src    int32
-	Dest   int32
+	U      int32
+	V      int32
 	Weight int32
 }
 
 func (Edge *Edge) String() string {
-	return fmt.Sprintf("src: %d, dest: %d, weight: %d", Edge.Src, Edge.Dest, Edge.Weight)
+	return fmt.Sprintf("src: %d, dest: %d, weight: %d", Edge.U, Edge.V, Edge.Weight)
 }
 
 func NewEdge(src, dest, weight int32) *Edge {
 	return &Edge{
-		Src:    src,
-		Dest:   dest,
+		U:      src,
+		V:      dest,
 		Weight: weight,
 	}
 }
@@ -32,8 +32,8 @@ func GetNumberOfVertices(edges []Edge) (int, error) {
 	uniqueVertices := make(map[int32]bool)
 
 	for _, edge := range edges {
-		uniqueVertices[edge.Src] = true
-		uniqueVertices[edge.Dest] = true
+		uniqueVertices[edge.U] = true
+		uniqueVertices[edge.V] = true
 	}
 
 	return len(uniqueVertices), nil
@@ -46,8 +46,8 @@ func getMaxVertex(edges []Edge) (int, error) {
 
 	maxVertex := 0
 	for _, edge := range edges {
-		maxVertex = int(math.Max(float64(maxVertex), float64(edge.Src)))
-		maxVertex = int(math.Max(float64(maxVertex), float64(edge.Dest)))
+		maxVertex = int(math.Max(float64(maxVertex), float64(edge.U)))
+		maxVertex = int(math.Max(float64(maxVertex), float64(edge.V)))
 	}
 
 	return maxVertex, nil
@@ -57,7 +57,7 @@ func GetStats(edges []*Edge) (int, int, int) {
 	uniqueVertices := make(map[int32]bool)
 	weight := 0
 	for _, edge := range edges {
-		for _, vertex := range []int32{edge.Src, edge.Dest} {
+		for _, vertex := range []int32{edge.U, edge.V} {
 			uniqueVertices[vertex] = true
 		}
 		weight += int(edge.Weight)
@@ -104,8 +104,8 @@ func ReadGraph(fileName string) ([]*Edge, error) {
 func SortEdges(edges []*Edge) {
 	sort.Slice(edges, func(i, j int) bool {
 		return (edges[i].Weight < edges[j].Weight) ||
-			(edges[i].Weight == edges[j].Weight && edges[i].Src < edges[j].Src) ||
-			(edges[i].Weight == edges[j].Weight && edges[i].Src == edges[j].Src && edges[i].Dest < edges[j].Dest)
+			(edges[i].Weight == edges[j].Weight && edges[i].U < edges[j].U) ||
+			(edges[i].Weight == edges[j].Weight && edges[i].U == edges[j].U && edges[i].V < edges[j].V)
 	})
 }
 
@@ -120,7 +120,7 @@ func WriteGraph(fileName string, edges []*Edge) error {
 
 	writer := bufio.NewWriter(file)
 	for _, edge := range edges {
-		_, err := fmt.Fprintf(writer, "%d %d %d\n", edge.Src, edge.Dest, edge.Weight)
+		_, err := fmt.Fprintf(writer, "%d %d %d\n", edge.U, edge.V, edge.Weight)
 		if err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ func (s *SubLinearServer) getEdgesToSend() ([]*utils.Edge, map[int32]int32) {
 
 	fragments := make(map[int32]int32)
 	for _, edge := range moes {
-		for _, vertex := range []int32{edge.Src, edge.Dest} {
+		for _, vertex := range []int32{edge.U, edge.V} {
 			fragments[vertex] = s.nodeData.fragments[vertex]
 		}
 	}
@@ -41,8 +41,8 @@ func (s *SubLinearServer) sendEdgesUp(edges []*utils.Edge, fragments map[int32]i
 	moeData := make([]*comms.EdgeData, len(edges))
 	for i, edge := range edges {
 		moeData[i] = &comms.EdgeData{
-			Src:    int32(edge.Src),
-			Dest:   int32(edge.Dest),
+			U:      int32(edge.U),
+			V:      int32(edge.V),
 			Weight: int32(edge.Weight),
 		}
 	}

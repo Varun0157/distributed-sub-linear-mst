@@ -1,15 +1,15 @@
 package utils
 
 type EdgeTarget struct {
-	Dest   int32
+	v      int32
 	Weight int32
 }
 
 func CreateAdjacencyList(edges []*Edge) map[int32][]EdgeTarget {
 	adjacencyList := make(map[int32][]EdgeTarget)
 	for _, edge := range edges {
-		adjacencyList[edge.Src] = append(adjacencyList[edge.Src], EdgeTarget{Dest: edge.Dest, Weight: edge.Weight})
-		adjacencyList[edge.Dest] = append(adjacencyList[edge.Dest], EdgeTarget{Dest: edge.Src, Weight: edge.Weight})
+		adjacencyList[edge.U] = append(adjacencyList[edge.U], EdgeTarget{v: edge.V, Weight: edge.Weight})
+		adjacencyList[edge.V] = append(adjacencyList[edge.V], EdgeTarget{v: edge.U, Weight: edge.Weight})
 	}
 
 	return adjacencyList
@@ -19,13 +19,13 @@ func getMinOutgoingEdge(src int32, targets []EdgeTarget, fragmentIds map[int32]i
 	var minEdge *Edge = nil
 
 	for _, target := range targets {
-		if fragmentIds[src] == fragmentIds[target.Dest] {
+		if fragmentIds[src] == fragmentIds[target.v] {
 			continue
 		}
 		if minEdge != nil && minEdge.Weight <= target.Weight {
 			continue
 		}
-		minEdge = NewEdge(src, target.Dest, target.Weight)
+		minEdge = NewEdge(src, target.v, target.Weight)
 	}
 
 	return minEdge
@@ -41,7 +41,7 @@ func GetMoEs(adjacencyList map[int32][]EdgeTarget, fragmentIds map[int32]int32) 
 			continue
 		}
 
-		fragment := fragmentIds[minEdge.Src]
+		fragment := fragmentIds[minEdge.U]
 		if currMin, ok := fragToMoe[fragment]; !ok || currMin.Weight > minEdge.Weight {
 			fragToMoe[fragment] = minEdge
 		}
@@ -59,7 +59,7 @@ func GetEdgeList(adjacencyList map[int32][]EdgeTarget) []*Edge {
 	edges := make([]*Edge, 0)
 	for src, targets := range adjacencyList {
 		for _, target := range targets {
-			edges = append(edges, NewEdge(src, target.Dest, target.Weight))
+			edges = append(edges, NewEdge(src, target.v, target.Weight))
 		}
 	}
 	return edges
