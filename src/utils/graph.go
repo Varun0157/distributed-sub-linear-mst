@@ -9,6 +9,7 @@ func CreateAdjacencyList(edges []*Edge) map[int32][]EdgeTarget {
 	adjacencyList := make(map[int32][]EdgeTarget)
 	for _, edge := range edges {
 		adjacencyList[edge.Src] = append(adjacencyList[edge.Src], EdgeTarget{Dest: edge.Dest, Weight: edge.Weight})
+		adjacencyList[edge.Dest] = append(adjacencyList[edge.Dest], EdgeTarget{Dest: edge.Src, Weight: edge.Weight})
 	}
 
 	return adjacencyList

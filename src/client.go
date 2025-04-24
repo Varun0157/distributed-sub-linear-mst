@@ -6,7 +6,6 @@ import (
 	"log"
 	comms "mst/sublinear/comms"
 	utils "mst/sublinear/utils"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -84,8 +83,6 @@ func (s *SubLinearServer) leafDriver() error {
 				s.nodeData.UpdateFragment(node, trgFrag)
 			}
 		}
-
-		time.Sleep(100 * time.Millisecond)
 
 		// if we did not send any edges in the last update, break
 		if len(edges) == 0 {
