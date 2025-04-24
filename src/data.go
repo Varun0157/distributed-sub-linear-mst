@@ -11,10 +11,11 @@ import (
 )
 
 type NodeMetaData struct {
-	id       int32
-	lis      net.Listener
-	parent   *NodeMetaData
-	children []*NodeMetaData
+	stateMutex sync.Mutex
+	id         int32
+	lis        net.Listener
+	parent     *NodeMetaData
+	children   []*NodeMetaData
 }
 
 func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
@@ -27,6 +28,9 @@ func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
 }
 
 func (md *NodeMetaData) String() string {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	childrenData := []int32{}
 	for _, child := range md.children {
 		if child == nil {
@@ -40,18 +44,29 @@ func (md *NodeMetaData) String() string {
 		parentData = fmt.Sprintf("%d", parent.id)
 	}
 
-	return fmt.Sprintf("{id: %d, addr: %s, children: %v, parent: %s}", md.id, md.GetAddr(), childrenData, parentData)
+	addr := md.lis.Addr().String()
+
+	return fmt.Sprintf("{id: %d, addr: %s, children: %v, parent: %s}", md.id, addr, childrenData, parentData)
 }
 
 func (md *NodeMetaData) GetAddr() string {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	return md.lis.Addr().String()
 }
 
 func (md *NodeMetaData) SetParent(parent *NodeMetaData) {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	md.parent = parent
 }
 
 func (md *NodeMetaData) RemoveChild(childId int32) {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	for i, child := range md.children {
 		if child.id != childId {
 			continue
@@ -62,14 +77,23 @@ func (md *NodeMetaData) RemoveChild(childId int32) {
 }
 
 func (md *NodeMetaData) isLeaf() bool {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	return len(md.children) == 0 && md.parent != nil
 }
 
 func (md *NodeMetaData) isRoot() bool {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	return md.parent == nil
 }
 
 func (md *NodeMetaData) SetChildren(children []*NodeMetaData) {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
 	md.children = children
 }
 
@@ -79,6 +103,7 @@ type NodeData struct {
 
 	edgesMutex     sync.Mutex
 	edges          []*utils.Edge
+	updateMutex    sync.Mutex
 	update         map[int32]int32
 	fragmentsMutex sync.Mutex
 	fragments      map[int32]int32
@@ -101,6 +126,12 @@ func NewNodeData(id int32, lis net.Listener) *NodeData {
 }
 
 func (node *NodeData) String() string {
+	node.edgesMutex.Lock()
+	defer node.edgesMutex.Unlock()
+
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
 	edgeData := make([]utils.Edge, 0)
 	for _, edge := range node.edges {
 		edgeData = append(edgeData, *edge)
@@ -111,6 +142,9 @@ func (node *NodeData) String() string {
 }
 
 func (node *NodeData) setUpdate(update map[int32]int32) {
+	node.updateMutex.Lock()
+	defer node.updateMutex.Unlock()
+
 	node.update = update
 }
 
