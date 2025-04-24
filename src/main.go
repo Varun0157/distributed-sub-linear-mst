@@ -114,8 +114,13 @@ func calcMST(graphFile string, outFile string) error {
 			server.ShutDown()
 		}()
 	}
-
 	serverWg.Wait()
+
+	var maxPhase int32 = 0
+	for _, node := range nodes {
+		maxPhase = max(maxPhase, node.md.phase)
+	}
+	log.Printf("===> calculation complete in %d rounds", maxPhase)
 
 	return nil
 }
@@ -149,7 +154,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}
-	log.Println("[INFO] finished running")
 
 	stats(infile, outfile)
 }

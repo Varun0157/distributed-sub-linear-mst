@@ -125,9 +125,12 @@ func (s *SubLinearServer) nonLeafDriver() error {
 		s.nodeData.ClearEdges()
 		s.nodeData.ClearFragments()
 
-		// set the update wake the consumers (handlers of RPC calls from children)
+		// set the update and wake the consumers (handlers of RPC calls from children)
 		s.nodeData.setUpdate(update.GetUpdates())
 		s.nodeData.updateCond.Broadcast()
+
+		// progress the phase counter
+		s.nodeData.md.progressPhase()
 	}
 
 	return nil

@@ -16,6 +16,7 @@ type NodeMetaData struct {
 	lis        net.Listener
 	parent     *NodeMetaData
 	children   []*NodeMetaData
+	phase      int32
 }
 
 func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
@@ -24,6 +25,7 @@ func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
 		lis:      lis,
 		parent:   nil,
 		children: []*NodeMetaData{},
+		phase:    0,
 	}
 }
 
@@ -47,6 +49,13 @@ func (md *NodeMetaData) String() string {
 	addr := md.lis.Addr().String()
 
 	return fmt.Sprintf("{id: %d, addr: %s, children: %v, parent: %s}", md.id, addr, childrenData, parentData)
+}
+
+func (md *NodeMetaData) progressPhase() {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
+	md.phase++
 }
 
 func (md *NodeMetaData) GetAddr() string {
