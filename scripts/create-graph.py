@@ -11,6 +11,7 @@ def generate_graph(n, m, output_file):
 
         if u != v and (u, v) not in edges and (v, u) not in edges:
             edges.add((u, v))
+            print(f"{len(edges)} added")
 
     with open(output_file, "w") as f:
         for u, v in edges:
