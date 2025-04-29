@@ -1,1 +1,3 @@
+- [ ] each node should start with S edges, not 1?
+- [ ] parents determined by fragments - look into multi-tree
 - [ ] tests
