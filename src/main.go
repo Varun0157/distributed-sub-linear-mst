@@ -3,12 +3,36 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"slices"
 	"sync"
 
 	utils "mst/sublinear/utils"
 )
+
+type GraphMetaData struct {
+	vertices int32
+	edges    int32
+	epsilon  float32
+}
+
+func NewMetaData(edges []*utils.Edge, epsilon float32) *GraphMetaData {
+	numVertices, numEdges, _ := utils.GetStats(edges)
+	return &GraphMetaData{
+		vertices: int32(numVertices),
+		edges:    int32(numEdges),
+		epsilon:  epsilon,
+	}
+}
+
+func (md *GraphMetaData) S() float32 {
+	return float32(math.Pow(float64(md.vertices), float64(md.epsilon)))
+}
+
+func (md *GraphMetaData) NumEdgesPerNode() int32 {
+	return int32(math.Floor(float64(md.S())))
+}
 
 func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
