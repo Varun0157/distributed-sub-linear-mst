@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"slices"
+	"strconv"
 	"sync"
 
 	utils "mst/sublinear/utils"
@@ -14,40 +15,48 @@ import (
 type GraphMetaData struct {
 	vertices int32
 	edges    int32
-	epsilon  float32
+	alpha    float64
 }
 
-func NewMetaData(edges []*utils.Edge, epsilon float32) *GraphMetaData {
+func NewMetaData(edges []*utils.Edge, alpha float64) *GraphMetaData {
 	numVertices, numEdges, _ := utils.GetStats(edges)
 	return &GraphMetaData{
 		vertices: int32(numVertices),
 		edges:    int32(numEdges),
-		epsilon:  epsilon,
+		alpha:    alpha,
 	}
 }
 
-func (md *GraphMetaData) S() float32 {
-	return float32(math.Pow(float64(md.vertices), float64(md.epsilon)))
+func (md *GraphMetaData) S() float64 {
+	return math.Pow(float64(md.vertices), md.alpha)
 }
 
 func (md *GraphMetaData) NumEdgesPerNode() int32 {
-	return int32(math.Floor(float64(md.S())))
+	return int32(math.Floor(md.S()))
 }
 
-func createTree(edges []*utils.Edge) ([]*NodeData, error) {
+func createTree(edges []*utils.Edge, md *GraphMetaData) ([]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
+
+	numNodes := int(math.Ceil(float64(len(edges)) / float64(md.NumEdgesPerNode())))
+	nodeEdgesList, err := utils.Partition(edges, numNodes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to partition edges: %v", err)
+	}
 
 	nodes := []*NodeData{}
 	// leaf nodes
-	for _, edge := range edges {
+	for _, nodeEdges := range nodeEdgesList {
 		node, err := nodeGenerator.CreateNode()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create node: %v", err)
 		}
 
-		node.AddEdges([]*utils.Edge{edge})
-		for _, vertex := range []int32{edge.U, edge.V} {
-			node.UpdateFragment(vertex, vertex)
+		node.AddEdges(nodeEdges)
+		for _, edge := range nodeEdges {
+			for _, vertex := range []int32{edge.U, edge.V} {
+				node.UpdateFragment(vertex, vertex)
+			}
 		}
 
 		nodes = append(nodes, node)
@@ -89,10 +98,13 @@ func createTree(edges []*utils.Edge) ([]*NodeData, error) {
 		}
 	}
 
+	// NOTE: we start-up the servers in ROOT to LEAF order to ensure
+	// the servers are ready to receive messages
+	slices.Reverse(nodes)
 	return nodes, nil
 }
 
-func calcMST(graphFile string, outFile string) error {
+func calcMST(graphFile string, outFile string, alpha float64) error {
 	log.Printf("graph file: %s", graphFile)
 	log.Printf("out   file: %s", outFile)
 
@@ -100,15 +112,12 @@ func calcMST(graphFile string, outFile string) error {
 	if err != nil {
 		return err
 	}
+	md := NewMetaData(edges, alpha)
 
-	nodes, err := createTree(edges)
+	nodes, err := createTree(edges, md)
 	if err != nil {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
-
-	// NOTE: we start-up the servers in ROOT to LEAF order to ensure
-	// the servers are ready to receive messages
-	slices.Reverse(nodes)
 
 	serverWg := sync.WaitGroup{}
 	for _, node := range nodes {
@@ -166,15 +175,19 @@ func stats(infile, outfile string) {
 }
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("usage: go run *.go <infile> <outfile>")
+	if len(os.Args) != 4 {
+		fmt.Println("usage: go run *.go <infile> <outfile> <alpha>")
 		os.Exit(1)
 	}
 
 	infile := os.Args[1]
 	outfile := os.Args[2]
+	alpha, err := strconv.ParseFloat(os.Args[3], 64)
+	if err != nil {
+		log.Fatalf("[ERROR] failed to parse alpha: %v", err)
+	}
 
-	err := calcMST(infile, outfile)
+	err = calcMST(infile, outfile, alpha)
 	if err != nil {
 		log.Fatalf("[ERROR] failed to run: %v", err)
 	}

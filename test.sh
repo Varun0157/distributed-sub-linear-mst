@@ -10,6 +10,6 @@ sleep 10
 
 echo && echo "getting distributed mst results"
 cd src || exit
-go run ./*.go ../data/graph.txt out.txt
+go run ./*.go ../data/graph.txt out.txt 0.5
 rm out.txt
 cd - || exit
