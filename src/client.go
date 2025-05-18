@@ -22,7 +22,7 @@ func (s *SubLinearServer) getEdgesToSend() (bool, []*utils.Edge, map[int32]int32
 		uCol := sr.GetFragmentColour(round, int(edge.U))
 		vCol := sr.GetFragmentColour(round, int(edge.V))
 		if uCol == vCol {
-			log.Printf("---> %d and %d are in the same fragment, skipping", edge.U, edge.V)
+			log.Printf("---> %d and %d have the same colour, skipping", edge.U, edge.V)
 		}
 		filteredMoes = append(filteredMoes, edge)
 	}
