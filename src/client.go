@@ -97,6 +97,8 @@ func (s *SubLinearServer) leafDriver() error {
 			}
 		}
 
+		s.nodeData.md.progressPhase()
+
 		// if we did not send any edges in the last update, break
 		if len(edges) == 0 {
 			break
