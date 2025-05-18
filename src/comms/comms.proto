@@ -14,7 +14,8 @@ message EdgeData {
 
 message Edges {
   int32 srcId = 1;
-  repeated EdgeData edges = 2;
+  bool noMoreUpdates = 2;
+  repeated EdgeData edges = 3;
   map<int32, int32> fragmentIds = 4;
 }
 

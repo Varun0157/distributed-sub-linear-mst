@@ -111,8 +111,8 @@ func (s *SubLinearServer) nonLeafDriver() error {
 		// upward prop
 		update, error := func() (*comms.Update, error) {
 			if s.nodeData.md.parent != nil {
-				edges, fragments := s.getEdgesToSend()
-				return s.sendEdgesUp(edges, fragments)
+				noMoreUpdates, edges, fragments := s.getEdgesToSend()
+				return s.sendEdgesUp(noMoreUpdates, edges, fragments)
 			} else {
 				return s.getMoeUpdate()
 			}
@@ -143,7 +143,7 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
 
 	// if th child no longer has moes, remove from further consideration (in further rounds)
-	if len(data.GetEdges()) < 1 && len(data.GetFragmentIds()) < 1 {
+	if data.GetNoMoreUpdates() {
 		s.nodeData.md.RemoveChild(data.GetSrcId())
 	}
 
