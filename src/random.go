@@ -23,6 +23,10 @@ func NewSharedRandomness() *SharedRandomness {
 	}
 }
 
+/*
+* NOTE: this is just a simulation of shared randomness, through
+* a common hash containing some global seed.
+ */
 func (sr *SharedRandomness) GetFragmentColour(round, id int) FragColour {
 	inputStr := fmt.Sprintf("%d-%d-%d", sr.globalSeed, round, id)
 
