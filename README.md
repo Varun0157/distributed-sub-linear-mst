@@ -4,7 +4,7 @@ The implementation sports red-blue randomness and a tree-like structure of distr
 
 The implementation is inspired by [an assignment document from the University of Freiburg](./docs/solution_12.pdf).
 
-# Run
+### Run
 
 Set up the project:
 
@@ -19,6 +19,6 @@ Create a random large graph, calculate the MST using sequential methods, and the
 ./test.sh
 ```
 
-# Credits
+### Credits
 
 [Prof. Kishore Kothapalli](https://scholar.google.com/citations?user=fKTjFPIAAAAJ&hl=en) for his guidance and knowledge of the above algorithms.
