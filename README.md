@@ -1,8 +1,6 @@
-Implementations of the calculation of a Minimum Spanning Tree of a given graph in a distributed setting, assuming sub-linear memory per node, as defined [by Mohsen Ghaffari](https://people.csail.mit.edu/ghaffari/MPA19/Notes/MPA.pdf).
+An implementation of the calculation of a Minimum Spanning Tree of a given graph in a distributed setting, assuming sub-linear memory per node, as defined [by Mohsen Ghaffari](https://people.csail.mit.edu/ghaffari/MPA19/Notes/MPA.pdf).
 
-The implementation sports red-blue randomness and a tree-like structure of distributed nodes with sub-linear memory, with mutexes to control the flow of edges up and down.
-
-The implementation is inspired by [an assignment document from the University of Freiburg](./docs/solution_12.pdf).
+It sports red-blue randomness and a tree-like structure of distributed nodes with sub-linear memory, with mutexes to control the flow of edges up and down. It is inspired by [an assignment document from the University of Freiburg](./docs/solution_12.pdf).
 
 ### Run
 
