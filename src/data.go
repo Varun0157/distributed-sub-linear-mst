@@ -115,7 +115,8 @@ type NodeData struct {
 	updateMutex    sync.Mutex
 	update         map[int32]int32
 	fragmentsMutex sync.Mutex
-	fragments      map[int32]int32
+	fragments      map[int32]int32 // vertex -> fragment id
+	ownedFrags     []int           // responsible for these fragments
 
 	// for tracking child requests
 	childReqWg sync.WaitGroup
@@ -146,8 +147,8 @@ func (node *NodeData) String() string {
 		edgeData = append(edgeData, *edge)
 	}
 
-	return fmt.Sprintf("{metadata: %v, edges: %v, fragments: %v}",
-		node.md, edgeData, node.fragments)
+	return fmt.Sprintf("{metadata: %v, edges: %v, fragments: %v, ownedFragments: %v}",
+		node.md, edgeData, node.fragments, node.ownedFrags)
 }
 
 func (node *NodeData) setUpdate(update map[int32]int32) {
@@ -183,6 +184,50 @@ func (node *NodeData) UpdateFragment(vertex, id int32) {
 	defer node.fragmentsMutex.Unlock()
 
 	node.fragments[vertex] = id
+}
+
+func (node *NodeData) GetFragments() []int {
+	fragments := []int{}
+
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	for _, fragment := range node.fragments {
+		for _, fr := range fragments {
+			if fr == int(fragment) {
+				continue
+			}
+		}
+		fragments = append(fragments, int(fragment))
+	}
+
+	return fragments
+}
+
+func (node *NodeData) ownFragment(fragment int) {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	for _, fr := range node.ownedFrags {
+		if fr == fragment {
+			return
+		}
+	}
+	node.ownedFrags = append(node.ownedFrags, fragment)
+}
+
+func (node *NodeData) disownAllFragments() {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	node.ownedFrags = []int{}
+}
+
+func (node *NodeData) getOwnedFragments() []int {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	return node.ownedFrags
 }
 
 type NodeDataGenerator struct {

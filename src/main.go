@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"sync"
 
 	utils "mst/sublinear/utils"
 )
@@ -24,43 +23,44 @@ func calcMST(graphFile string, outFile string, alpha float64) error {
 	if err != nil {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
+	log.Printf("created tree with %d nodes", len(nodes))
 
-	serverWg := sync.WaitGroup{}
-	for _, node := range nodes {
-		// bind the server to a port
-		log.Printf("node: %s", node.String())
-		server, err := NewSubLinearServer(node, outFile)
-		if err != nil {
-			log.Fatalf("failed to create server: %v", err)
-		}
-
-		// launch the server
-		serverWg.Add(1)
-		go func() {
-			defer serverWg.Done()
-
-			err := func() error {
-				if server.nodeData.md.isLeaf() {
-					return server.leafDriver()
-				} else {
-					return server.nonLeafDriver()
-				}
-			}()
-			if err != nil {
-				log.Fatalf("failed to run server: %v", err)
-			}
-
-			server.ShutDown()
-		}()
-	}
-	serverWg.Wait()
-
-	var maxPhase int32 = 0
-	for _, node := range nodes {
-		maxPhase = max(maxPhase, node.md.phase)
-	}
-	log.Printf("===> calculation complete in %d rounds", maxPhase)
-
+	// serverWg := sync.WaitGroup{}
+	// for _, node := range nodes {
+	// 	// bind the server to a port
+	// 	log.Printf("node: %s", node.String())
+	// 	server, err := NewSubLinearServer(node, outFile)
+	// 	if err != nil {
+	// 		log.Fatalf("failed to create server: %v", err)
+	// 	}
+	//
+	// 	// launch the server
+	// 	serverWg.Add(1)
+	// 	go func() {
+	// 		defer serverWg.Done()
+	//
+	// 		err := func() error {
+	// 			if server.nodeData.md.isLeaf() {
+	// 				return server.leafDriver()
+	// 			} else {
+	// 				return server.nonLeafDriver()
+	// 			}
+	// 		}()
+	// 		if err != nil {
+	// 			log.Fatalf("failed to run server: %v", err)
+	// 		}
+	//
+	// 		server.ShutDown()
+	// 	}()
+	// }
+	// serverWg.Wait()
+	//
+	// var maxPhase int32 = 0
+	// for _, node := range nodes {
+	// 	maxPhase = max(maxPhase, node.md.phase)
+	// }
+	// log.Printf("===> calculation complete in %d rounds", maxPhase)
+	//
 	return nil
 }
 
