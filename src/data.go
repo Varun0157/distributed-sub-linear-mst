@@ -14,7 +14,7 @@ type NodeMetaData struct {
 	stateMutex sync.Mutex
 	id         int32
 	lis        net.Listener
-	parent     *NodeMetaData
+	parents    map[int32][]*NodeMetaData
 	children   []*NodeMetaData
 	phase      int32
 }
@@ -23,7 +23,7 @@ func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
 	return &NodeMetaData{
 		id:       id,
 		lis:      lis,
-		parent:   nil,
+		parents:  make(map[int32][]*NodeMetaData),
 		children: []*NodeMetaData{},
 		phase:    0,
 	}
@@ -42,8 +42,8 @@ func (md *NodeMetaData) String() string {
 	}
 
 	parentData := "nil"
-	if parent := md.parent; parent != nil {
-		parentData = fmt.Sprintf("%d", parent.id)
+	for fragment, parents := range md.parents {
+		parentData += fmt.Sprintf(" [fragment: %d -> parents: %s", fragment, parents)
 	}
 
 	addr := md.lis.Addr().String()
@@ -65,11 +65,11 @@ func (md *NodeMetaData) GetAddr() string {
 	return md.lis.Addr().String()
 }
 
-func (md *NodeMetaData) SetParent(parent *NodeMetaData) {
+func (md *NodeMetaData) SetParent(fragment int32, parent *NodeMetaData) {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	md.parent = parent
+	md.parents[fragment] = append(md.parents[fragment], parent)
 }
 
 func (md *NodeMetaData) RemoveChild(childId int32) {
@@ -89,14 +89,14 @@ func (md *NodeMetaData) isLeaf() bool {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	return len(md.children) == 0 && md.parent != nil
+	return len(md.children) == 0
 }
 
 func (md *NodeMetaData) isRoot() bool {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	return md.parent == nil
+	return len(md.parents) == 0
 }
 
 func (md *NodeMetaData) SetChildren(children []*NodeMetaData) {
