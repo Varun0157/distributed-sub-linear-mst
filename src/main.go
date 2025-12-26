@@ -9,6 +9,39 @@ import (
 	utils "mst/sublinear/utils"
 )
 
+func printTreeStructure(allLevels [][]*NodeData) {
+	totalNodes := 0
+	for _, level := range allLevels {
+		totalNodes += len(level)
+	}
+
+	log.Printf("========================================")
+	log.Printf("====== TREE STRUCTURE =======")
+	log.Printf("========================================")
+	log.Printf("Total levels: %d", len(allLevels))
+	log.Printf("Total nodes:  %d", totalNodes)
+	log.Printf("")
+
+	for levelIdx, level := range allLevels {
+		levelName := "NON-LEAF"
+		if levelIdx == 0 {
+			levelName = "LEAF"
+		} else if levelIdx == len(allLevels)-1 {
+			levelName = "ROOT"
+		}
+
+		log.Printf("--- Level %d (%s) ---", levelIdx, levelName)
+		log.Printf("  Machines: %d", len(level))
+
+		for nodeIdx, node := range level {
+			log.Printf("  Node-%d: %v", nodeIdx, node)
+		}
+		log.Printf("")
+	}
+
+	log.Printf("========================================")
+}
+
 func calcMST(graphFile string, outFile string, alpha float64) error {
 	log.Printf("graph file: %s", graphFile)
 	log.Printf("out   file: %s", outFile)
@@ -19,11 +52,13 @@ func calcMST(graphFile string, outFile string, alpha float64) error {
 	}
 	md := NewMetaData(edges, alpha)
 
-	nodes, err := CreateMultiTree(edges, md)
+	levels, err := CreateMultiTree(edges, md)
 	if err != nil {
 		return fmt.Errorf("failed to create tree: %v", err)
 	}
-	log.Printf("created tree with %d nodes", len(nodes))
+
+	// Print tree structure
+	printTreeStructure(levels)
 
 	// serverWg := sync.WaitGroup{}
 	// for _, node := range nodes {

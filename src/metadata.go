@@ -132,7 +132,45 @@ func createNonLeafLevels(numLevels, machinesPerLevel int, nodeGenerator *NodeDat
 	return levels, nil
 }
 
-func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([]*NodeData, error) {
+func assignEdges(levels [][]*NodeData) error {
+	findParent := func(level, fragment int) (*NodeData, error) {
+		candidates := []*NodeData{}
+		for _, node := range levels[level] {
+			if node.ownsFragment(fragment) {
+				candidates = append(candidates, node)
+			}
+		}
+
+		if len(candidates) == 0 {
+			return nil, fmt.Errorf("no owners of fragment %d in level %d", fragment, level)
+		}
+
+		randomIndex := rand.Intn(len(candidates))
+		parent := candidates[randomIndex]
+
+		return parent, nil
+	}
+
+	for i := range len(levels) - 1 {
+		children := levels[i]
+
+		for _, child := range children {
+			for _, frag := range child.getOwnedFragments() {
+				parent, err := findParent(i+1, frag)
+				if err != nil {
+					return err
+				}
+
+				child.md.SetParent(int32(frag), parent.md)
+				parent.md.SetChild(int32(frag), child.md)
+			}
+		}
+	}
+
+	return nil
+}
+
+func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([][]*NodeData, error) {
 	nodeGenerator := NewNodeDataGenerator()
 
 	levels := md.NumLevels()
@@ -149,8 +187,8 @@ func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([]*NodeData, error
 		return nil, fmt.Errorf("failed to partition edges: %v", err)
 	}
 
-	nodes := []*NodeData{}
 	// leaf nodes
+	leafNodes := []*NodeData{}
 	for _, nodeEdges := range baseEdgesList {
 		node, err := nodeGenerator.CreateNode()
 		if err != nil {
@@ -161,14 +199,15 @@ func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([]*NodeData, error
 		for _, edge := range nodeEdges {
 			for _, vertex := range []int32{edge.U, edge.V} {
 				node.UpdateFragment(vertex, vertex)
+				node.ownFragment(int(vertex))
 			}
 		}
 
-		nodes = append(nodes, node)
+		leafNodes = append(leafNodes, node)
 	}
 
 	uniqueFragments := make(map[int32]bool)
-	for _, node := range nodes {
+	for _, node := range leafNodes {
 		for _, fragment := range node.GetFragments() {
 			uniqueFragments[int32(fragment)] = true
 		}
@@ -183,13 +222,11 @@ func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([]*NodeData, error
 		return nil, fmt.Errorf("failed to create non-leaf levels: %v", err)
 	}
 
-	for _, level := range nonLeafLevels {
-		nodes = append(nodes, level...)
+	allLevels := append([][]*NodeData{leafNodes}, nonLeafLevels...)
+	err = assignEdges(allLevels)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, node := range nodes {
-		log.Printf("Created node %s", node.String())
-	}
-
-	return nodes, nil
+	return allLevels, nil
 }

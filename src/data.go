@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"slices"
 	"sync"
 
 	utils "mst/sublinear/utils"
@@ -14,8 +15,8 @@ type NodeMetaData struct {
 	stateMutex sync.Mutex
 	id         int32
 	lis        net.Listener
-	parents    map[int32][]*NodeMetaData
-	children   []*NodeMetaData
+	parents    map[int32]*NodeMetaData
+	children   map[int32][]*NodeMetaData
 	phase      int32
 }
 
@@ -23,8 +24,8 @@ func NewNodeMetaData(id int32, lis net.Listener) *NodeMetaData {
 	return &NodeMetaData{
 		id:       id,
 		lis:      lis,
-		parents:  make(map[int32][]*NodeMetaData),
-		children: []*NodeMetaData{},
+		parents:  make(map[int32]*NodeMetaData),
+		children: make(map[int32][]*NodeMetaData),
 		phase:    0,
 	}
 }
@@ -33,22 +34,21 @@ func (md *NodeMetaData) String() string {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	childrenData := []int32{}
-	for _, child := range md.children {
-		if child == nil {
-			continue
+	childrenData := make(map[int32][]int32)
+	for fragment, children := range md.children {
+		for _, child := range children {
+			childrenData[fragment] = append(childrenData[fragment], child.id)
 		}
-		childrenData = append(childrenData, child.id)
 	}
 
-	parentData := "nil"
-	for fragment, parents := range md.parents {
-		parentData += fmt.Sprintf(" [fragment: %d -> parents: %s", fragment, parents)
+	parentData := make(map[int32]int32)
+	for fragment, parent := range md.parents {
+		parentData[fragment] = parent.id
 	}
 
 	addr := md.lis.Addr().String()
 
-	return fmt.Sprintf("{id: %d, addr: %s, children: %v, parent: %s}", md.id, addr, childrenData, parentData)
+	return fmt.Sprintf("{id:%d, addr:%s, children:%v, parents:%v}", md.id, addr, childrenData, parentData)
 }
 
 func (md *NodeMetaData) progressPhase() {
@@ -69,20 +69,14 @@ func (md *NodeMetaData) SetParent(fragment int32, parent *NodeMetaData) {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	md.parents[fragment] = append(md.parents[fragment], parent)
+	md.parents[fragment] = parent
 }
 
-func (md *NodeMetaData) RemoveChild(childId int32) {
+func (md *NodeMetaData) SetChild(fragment int32, child *NodeMetaData) {
 	md.stateMutex.Lock()
 	defer md.stateMutex.Unlock()
 
-	for i, child := range md.children {
-		if child.id != childId {
-			continue
-		}
-		md.children = append(md.children[:i], md.children[i+1:]...)
-		break
-	}
+	md.children[fragment] = append(md.children[fragment], child)
 }
 
 func (md *NodeMetaData) isLeaf() bool {
@@ -97,13 +91,6 @@ func (md *NodeMetaData) isRoot() bool {
 	defer md.stateMutex.Unlock()
 
 	return len(md.parents) == 0
-}
-
-func (md *NodeMetaData) SetChildren(children []*NodeMetaData) {
-	md.stateMutex.Lock()
-	defer md.stateMutex.Unlock()
-
-	md.children = children
 }
 
 type NodeData struct {
@@ -208,12 +195,17 @@ func (node *NodeData) ownFragment(fragment int) {
 	node.fragmentsMutex.Lock()
 	defer node.fragmentsMutex.Unlock()
 
-	for _, fr := range node.ownedFrags {
-		if fr == fragment {
-			return
-		}
+	if slices.Contains(node.ownedFrags, fragment) {
+		return
 	}
 	node.ownedFrags = append(node.ownedFrags, fragment)
+}
+
+func (node *NodeData) getOwnedFragments() []int {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	return node.ownedFrags
 }
 
 func (node *NodeData) disownAllFragments() {
@@ -223,11 +215,11 @@ func (node *NodeData) disownAllFragments() {
 	node.ownedFrags = []int{}
 }
 
-func (node *NodeData) getOwnedFragments() []int {
+func (node *NodeData) ownsFragment(fragment int) bool {
 	node.fragmentsMutex.Lock()
 	defer node.fragmentsMutex.Unlock()
 
-	return node.ownedFrags
+	return slices.Contains(node.ownedFrags, fragment)
 }
 
 type NodeDataGenerator struct {
@@ -258,7 +250,7 @@ func listenOnRandomAddr() (lis net.Listener, err error) {
 	return lis, nil
 }
 
-func (nodeGenerator *NodeDataGenerator) getNextId() (int32, error) {
+func (nodeGenerator *NodeDataGenerator) getNextID() (int32, error) {
 	nodeGenerator.idCounterMutex.Lock()
 	defer nodeGenerator.idCounterMutex.Unlock()
 
@@ -269,7 +261,7 @@ func (nodeGenerator *NodeDataGenerator) getNextId() (int32, error) {
 }
 
 func (nodeGenerator *NodeDataGenerator) CreateNode() (*NodeData, error) {
-	id, err := nodeGenerator.getNextId()
+	id, err := nodeGenerator.getNextID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get next id: %v", err)
 	}
