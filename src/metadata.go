@@ -50,7 +50,7 @@ func (md *GraphMetaData) NumLevels() int {
 }
 
 func (md *GraphMetaData) responsibleProbability(childLevel int) float64 {
-	return math.Pow(4.0/md.S(), float64(childLevel))
+	return math.Min(math.Pow(4.0/md.S(), float64(childLevel)), 1.0)
 }
 
 func (md *GraphMetaData) IsResponsible(childLevel int) bool {
@@ -132,7 +132,7 @@ func createNonLeafLevels(numLevels, machinesPerLevel int, nodeGenerator *NodeDat
 	return levels, nil
 }
 
-func assignEdges(levels [][]*NodeData) error {
+func assignEdges(levels [][]*NodeData, fragments []int) error {
 	findParent := func(level, fragment int) (*NodeData, error) {
 		candidates := []*NodeData{}
 		for _, node := range levels[level] {
@@ -155,7 +155,7 @@ func assignEdges(levels [][]*NodeData) error {
 		children := levels[i]
 
 		for _, child := range children {
-			for _, frag := range child.getOwnedFragments() {
+			for _, frag := range fragments {
 				parent, err := findParent(i+1, frag)
 				if err != nil {
 					return err
@@ -223,8 +223,7 @@ func CreateMultiTree(edges []*utils.Edge, md *GraphMetaData) ([][]*NodeData, err
 	}
 
 	allLevels := append([][]*NodeData{leafNodes}, nonLeafLevels...)
-	err = assignEdges(allLevels)
-	if err != nil {
+	if err = assignEdges(allLevels, fragments); err != nil {
 		return nil, err
 	}
 
