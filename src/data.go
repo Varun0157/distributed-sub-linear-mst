@@ -93,6 +93,39 @@ func (md *NodeMetaData) isRoot() bool {
 	return len(md.parents) == 0
 }
 
+func (md *NodeMetaData) RemoveChildFromFragment(fragmentID, childID int32) {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
+	children := md.children[fragmentID]
+	for i, child := range children {
+		if child.id == childID {
+			md.children[fragmentID] = append(children[:i], children[i+1:]...)
+			break
+		}
+	}
+}
+
+func (md *NodeMetaData) GetTotalChildren() int {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
+	// Count total parent-child relationships across all fragments
+	// Each relationship represents one expected RPC call
+	total := 0
+	for _, childList := range md.children {
+		total += len(childList)
+	}
+	return total
+}
+
+func (md *NodeMetaData) HasParents() bool {
+	md.stateMutex.Lock()
+	defer md.stateMutex.Unlock()
+
+	return len(md.parents) > 0
+}
+
 type NodeData struct {
 	// id, addr, md of neighbours
 	md *NodeMetaData
@@ -220,6 +253,26 @@ func (node *NodeData) ownsFragment(fragment int) bool {
 	defer node.fragmentsMutex.Unlock()
 
 	return slices.Contains(node.ownedFrags, fragment)
+}
+
+func (node *NodeData) getEdgeFragment(edge *utils.Edge) int32 {
+	node.fragmentsMutex.Lock()
+	defer node.fragmentsMutex.Unlock()
+
+	minVertex := edge.U
+	if edge.V < edge.U {
+		minVertex = edge.V
+	}
+	return node.fragments[minVertex]
+}
+
+func (node *NodeData) groupEdgesByFragment(edges []*utils.Edge) map[int32][]*utils.Edge {
+	edgesByFragment := make(map[int32][]*utils.Edge)
+	for _, edge := range edges {
+		fragID := node.getEdgeFragment(edge)
+		edgesByFragment[fragID] = append(edgesByFragment[fragID], edge)
+	}
+	return edgesByFragment
 }
 
 type NodeDataGenerator struct {

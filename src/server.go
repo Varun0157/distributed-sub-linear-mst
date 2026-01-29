@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
+
 	comms "mst/sublinear/comms"
 	utils "mst/sublinear/utils"
 	"slices"
@@ -101,18 +103,66 @@ func (s *SubLinearServer) getMoeUpdate() (*comms.Update, error) {
 
 func (s *SubLinearServer) nonLeafDriver() error {
 	// while we have children
-	for len(s.nodeData.md.children) > 0 {
+	for s.nodeData.md.GetTotalChildren() > 0 {
 		// wait for the moes from all the children
-		s.nodeData.childReqWg.Add(len(s.nodeData.md.children))
+		totalChildren := s.nodeData.md.GetTotalChildren()
+		s.nodeData.childReqWg.Add(totalChildren)
 		s.nodeData.childReqWg.Wait()
 
 		log.Printf("STATE AFTER GETTING CHILD UPDATE: %s", s.nodeData.String())
 
 		// upward prop
 		update, error := func() (*comms.Update, error) {
-			if s.nodeData.md.parent != nil {
-				noMoreUpdates, edges, fragments := s.getEdgesToSend()
-				return s.sendEdgesUp(noMoreUpdates, edges, fragments)
+			if s.nodeData.md.HasParents() {
+				noMoreUpdates, edgesByFragment, fragmentsByFragment := s.getEdgesToSend()
+
+				allUpdates := make(map[int32]int32)
+				var updateMutex sync.Mutex
+
+				// Send to every parent for every fragment relationship concurrently
+				var wg sync.WaitGroup
+				errChan := make(chan error, len(s.nodeData.md.parents))
+
+				for fragID := range s.nodeData.md.parents {
+					fragID := fragID
+					edges := edgesByFragment[fragID]
+					fragments := fragmentsByFragment[fragID]
+
+					if edges == nil {
+						edges = []*utils.Edge{}
+					}
+					if fragments == nil {
+						fragments = make(map[int32]int32)
+					}
+
+					fragmentNoMoreUpdates := noMoreUpdates || len(edges) == 0
+
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+
+						fragmentUpdate, err := s.sendEdgesUpForFragment(fragID, fragmentNoMoreUpdates, edges, fragments)
+						if err != nil {
+							errChan <- fmt.Errorf("failed to send edges up for fragment %d: %v", fragID, err)
+							return
+						}
+
+						updateMutex.Lock()
+						for srcFrag, trgFrag := range fragmentUpdate.GetUpdates() {
+							allUpdates[srcFrag] = trgFrag
+						}
+						updateMutex.Unlock()
+					}()
+				}
+
+				wg.Wait()
+				close(errChan)
+
+				if err := <-errChan; err != nil {
+					return nil, err
+				}
+
+				return &comms.Update{Updates: allUpdates}, nil
 			} else {
 				return s.getMoeUpdate()
 			}
@@ -142,10 +192,8 @@ func (s *SubLinearServer) PropogateUp(ctx context.Context, data *comms.Edges) (*
 	// update state with received data
 	s.updateState(data.GetEdges(), data.GetFragmentIds())
 
-	// if th child no longer has moes, remove from further consideration (in further rounds)
-	if data.GetNoMoreUpdates() {
-		s.nodeData.md.RemoveChild(data.GetSrcId())
-	}
+	// Note: We don't remove children during execution to avoid WaitGroup race conditions
+	// Children with noMoreUpdates will continue sending empty messages in subsequent rounds
 
 	// received an update from a child
 	log.Printf("%d - received edges from child", s.nodeData.md.id)

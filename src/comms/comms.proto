@@ -17,6 +17,7 @@ message Edges {
   bool noMoreUpdates = 2;
   repeated EdgeData edges = 3;
   map<int32, int32> fragmentIds = 4;
+  int32 fragmentId = 5;  // Which fragment this RPC is about
 }
 
 message Update { map<int32, int32> updates = 1; }
